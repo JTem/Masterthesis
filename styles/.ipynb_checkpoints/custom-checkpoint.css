@@ -1,0 +1,67 @@
+<style>
+.jp-RenderedText, .jp-OutputArea-output {
+    font-family: 'Arial', sans-serif;
+    font-size: 12pt;
+    line-height: 1.5;
+    color: #333333;
+}
+
+.jp-MarkdownCell h1 {
+    font-size: 24pt;
+    color: #003366;
+    border-bottom: 2px solid #003366;
+    padding-bottom: 5px;
+    margin-top: 20px;
+    margin-bottom: 15px;
+}
+
+.jp-MarkdownCell h2 {
+    font-size: 20pt;
+    color: #003366;
+    margin-top: 15px;
+    margin-bottom: 10px;
+}
+
+.jp-MarkdownCell h3 {
+    font-size: 16pt;
+    color: #003366;
+    margin-top: 10px;
+    margin-bottom: 5px;
+}
+
+.jp-CodeCell {
+    background-color: #f9f9f9;
+    border: 1px solid #eaeaea;
+}
+
+.jp-CodeMirrorEditor .CodeMirror {
+    font-family: 'Consolas', monospace;
+    font-size: 11pt;
+}
+
+.jp-OutputArea-output {
+    background-color: #f9f9f9;
+    border: 1px solid #eaeaea;
+    padding: 10px;
+}
+
+.jp-OutputArea-output img {
+    max-width: 100%;
+    height: auto;
+}
+
+.jp-RenderedHTMLCommon table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.jp-RenderedHTMLCommon th, .jp-RenderedHTMLCommon td {
+    border: 1px solid #dddddd;
+    text-align: left;
+    padding: 8px;
+}
+
+.jp-RenderedHTMLCommon tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+</style>

@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from DualQuaternions.Quaternion import Quaternion
+from DualQuaternions import Quaternion
 
 class PoseTrajGen:
     def __init__(self, Segments, a_max, j_max, ang_acc_max, ang_jerk_max):
