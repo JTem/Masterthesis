@@ -4,40 +4,36 @@ from neura_dual_quaternions import Quaternion
 
 class Arc:
         def __init__(self, dq1, dq2, velocity, angular_velocity_max, center, radius, rotation, angle):
-                self.p1 = dq1.getPosition()
-                self.p2 = dq2.getPosition()
+                #self.p1 = dq1.getPosition().flatten()
+                #self.p2 = dq2.getPosition().flatten()
                 self.q1 = dq1.real
                 self.q2 = dq2.real
-                self.velocity = velocity
                 self.center = center
                 self.radius = radius
                 self.rotation = rotation
                 self.angle = angle
-                self.angular_velocity_max = angular_velocity_max
-
+                
+                delta_dq = dq1.inverse()*dq2
+                
                 self.dist = angle * radius
-
-                self.duration = self.dist/self.velocity
-
-                dq = q1.inverse()*q2
-                self.theta = abs(dq.getAngle())
-                e = dq.log()
+    
+                self.duration = self.dist/velocity
+                
+                self.theta = abs(delta_dq.real.getAngle())
+                e = delta_dq.real.log()
                 if e.norm() > 1e-6:
                         e = e.normalize()
 
-                e0 = q1*e*q1.inverse()
+                e0 = self.q1*e*self.q1.inverse()
                 self.rotation_axis = e0.getVector().flatten()
 
                 if self.duration > 1e-6:
-                        self.angular_velocity = self.theta/self.duration
-
-                        if self.angular_velocity > self.angular_velocity_max:
-                                self.duration = self.theta / self.angular_velocity_max
-                                self.angular_velocity = self.angular_velocity_max
-
-                else: 
-                        self.duration = self.theta / self.angular_velocity_max
-                        self.angular_velocity = self.angular_velocity_max
+                
+                        if self.theta/self.duration > angular_velocity_max:
+                                self.duration = self.theta / angular_velocity_max
+                                
+                else:
+                        self.duration = self.theta / angular_velocity_max
             
             
             

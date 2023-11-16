@@ -4,21 +4,23 @@ from DualQuaternionQuinticBlends.Arc import Arc
 
 
 class ArcGenerator:
-        def __init__(self, DQ_list, velocity, angular_velocity_max):
-                self.DQ = DQ_list
-                self.velocity = velocity
-                self.angular_velocity_max = angular_velocity_max
-                self.number_of_arcs = len(DQ_list)-2
+        def __init__(self):
+                pass
+        
+        
+        def generateSegments(self, DQ_list, velocity, angular_velocity_max):
+                number_of_arcs = len(DQ_list)-2
                 self.arc_list = []
                 is_last_arc = False
-                for i in range(self.number_of_arcs):
+                for i in range(number_of_arcs):
 
-                        if i == self.number_of_arcs - 1:
+                        if i == number_of_arcs - 1:
                                 is_last_arc = True
 
-                        self.generateArcs(DQ_list[i], DQ_list[i+1], DQ_list[i+2], is_last_arc)
-        
-        
+                        self.generateArcs(DQ_list[i], DQ_list[i+1], DQ_list[i+2], is_last_arc, velocity, angular_velocity_max)
+                
+                return self.arc_list
+            
         def calcCenterAndRadius(self, p1, p2, p3):
                 v = p3-p2
                 u = p3-p1
@@ -32,11 +34,11 @@ class ArcGenerator:
 
                 return center, radius
         
-        def computeRotationMatrix(v_center_start, v_center_mid):
-                z_ = np.cross(v_start_center, v_mid_center)
+        def computeRotationMatrix(self, v_center_start, v_center_mid):
+                z_ = np.cross(v_center_start, v_center_mid)
                 z = z_/np.linalg.norm(z_)
 
-                y = np.cross(z, v_center_start)
+                y_ = np.cross(z, v_center_start)
 
                 y = y_/np.linalg.norm(y_)
                 
@@ -44,11 +46,11 @@ class ArcGenerator:
                 
                 return rotation
                 
-        def generateArcs(self, dq1, dq2, dq3, is_last_arc):
+        def generateArcs(self, dq1, dq2, dq3, is_last_arc, velocity, angular_velocity_max):
                 
-                p1 = dq1.getPosition()
-                p2 = dq2.getPosition()
-                p3 = dq3.getPosition()
+                p1 = dq1.getPosition().flatten()
+                p2 = dq2.getPosition().flatten()
+                p3 = dq3.getPosition().flatten()
                 
                 center, radius = self.calcCenterAndRadius(p1, p2, p3)
                 
@@ -60,18 +62,18 @@ class ArcGenerator:
                 v_center_mid = v_center_mid_/np.linalg.norm(v_center_mid_)
                 v_center_end = v_center_end_/np.linalg.norm(v_center_end_)
 
-                rotation = computeRotationMatrix(v_center_start, v_center_mid)
+                rotation = self.computeRotationMatrix(v_center_start, v_center_mid)
   
-                angle = self.calculateAngleBetweenVectors(v_start_center, v_mid_center)
+                angle = self.calculateAngleBetweenVectors(v_center_start, v_center_mid)
                         
-                self.arc_list.append(Arc(dq1, dq2, self.velocity, self.angular_velocity_max, center, radius, rotation, angle))
+                self.arc_list.append(Arc(dq1, dq2, velocity, angular_velocity_max, center, radius, rotation, angle))
                 
                 if is_last_arc:
                                 
-                        rotation = computeRotationMatrix(v_center_start, v_center_mid)
-                        angle = self.calculateAngleBetweenVectors(v_mid_center, v_end_center)
+                        rotation = self.computeRotationMatrix(v_center_mid, v_center_end)
+                        angle = self.calculateAngleBetweenVectors(v_center_mid, v_center_end)
                         
-                        self.arc_list.append(Arc(dq2, dq3, self.velocity, self.angular_velocity_max, center, radius, rotation, angle))
+                        self.arc_list.append(Arc(dq2, dq3, velocity, angular_velocity_max, center, radius, rotation, angle))
         
         
         def calculateAngleBetweenVectors(self, v1, v2):

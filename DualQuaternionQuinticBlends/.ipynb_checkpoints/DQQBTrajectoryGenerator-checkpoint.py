@@ -292,13 +292,6 @@ class DQQBTrajectoryGenerator:
 
                 
                 
-                print(self.p0_list)
-                print(self.p1_list)
-                print(self.v0_list)
-                print(self.v1_list)
-                print(self.a0_list)
-                print(self.a1_list)
-                
                 self.time_blend_start_cart.append(0)
                 self.time_blend_start_quat.append(0)
                 self.time_vector.append(0)
@@ -371,6 +364,51 @@ class DQQBTrajectoryGenerator:
 
         
                 return pos, vel, acc, jerk, quaternion, angular_velocity, angular_acceleration, angular_jerk
+        
+
+        def evaluate_DQ(self, t):
+                seg_cart, cnt_cart = self.determineSegmentType(t, self.time_blend_start_cart, self.duration_blend_list_cart)
+                seg_quat, cnt_quat = self.determineSegmentType(t, self.time_blend_start_quat, self.duration_blend_list_quat)
+        
+                if seg_cart == "blend":
+                        dt = t - self.time_blend_start_cart[cnt_cart]
+                        pos, vel, acc, jerk = self.quinticPolynomial(self.p0_list[cnt_cart], self.p1_list[cnt_cart], self.v0_list[cnt_cart], self.v1_list[cnt_cart], self.a0_list[cnt_cart], self.a1_list[cnt_cart], dt, self.duration_blend_list_cart[cnt_cart])
+
+                if seg_cart == "lin":
+                        dt = t - self.time_blend_start_cart[cnt_cart] - 0.5*self.duration_blend_list_cart[cnt_cart]
+                        jerk = np.array([0,0,0])
+                        acc = self.Segments[cnt_cart].getAcceleration(dt)
+                        vel = self.Segments[cnt_cart].getVelocity(dt)
+                        pos = self.Segments[cnt_cart].getPosition(dt)
+            
+                if seg_quat == "blend":
+                        dt = t - self.time_blend_start_quat[cnt_quat]
+                        log, angular_velocity, angular_acceleration, angular_jerk = self.cubicPolynomial(self.ang_v0_list[cnt_quat], self.ang_v1_list[cnt_quat], np.array([0,0,0]), np.array([0,0,0]), dt, self.duration_blend_list_quat[cnt_quat])
+
+                        log -= self.ang_v0_list[cnt_quat]*0.5*self.duration_blend_list_quat[cnt_quat]
+
+                        quaternion = Quaternion.exp(Quaternion(0,log[0], log[1], log[2])*0.5)*self.Segments[cnt_quat].q1
+
+                if seg_quat == "lin":
+                        dt = t - self.time_blend_start_quat[cnt_quat] - 0.5*self.duration_blend_list_quat[cnt_quat]
+                        angular_jerk = np.array([0,0,0])
+                        angular_acceleration = np.array([0,0,0])
+                        angular_velocity = self.Segments[cnt_quat].getAngularVelocity()
+
+                        log = angular_velocity*dt
+
+                        quaternion = Quaternion.exp(Quaternion(0, log[0], log[1], log[2])*0.5)*self.Segments[cnt_quat].q1
+                
+                w = Quaternion(0, *angular_velocity)
+                w_dot = Quaternion(0, *angular_acceleration)
+                v = Quaternion(0, *vel)
+                a = Quaternion(0, *acc)
+                
+                dq = DualQuaternion.fromQuatPos(quaternion, pos)
+                dq_dot = DualDuaternion(0.5*(w*dq.real), 0.5*(w*dq.dual + v*dq.real))
+                dq_ddot = DualQuaternion(0.5*(w_dot*dq.real + w*dq_dot.real), 0.5*(w_dot*dq.dual + w*dq_dot.dual+a*dq.real + v*dq_dot.real))
+
+                return dq, dq_dot, dq_ddot
     
     
     
