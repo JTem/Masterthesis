@@ -2,16 +2,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Computer+Modern" rel="stylesheet">
 
 <style>
-.jp-RenderedText, .jp-OutputArea-output {
-    /*font-family: 'Arial', sans-serif;*/
-    font-family: 'Computer Modern', 'Latin Modern', serif;
-    font-size: 12pt;
-    line-height: 2.5;
-    color: #333333;
-}
-
 .jp-MarkdownCell h1 {
-    font-size: 24pt;
+    font-size: 34pt;
     color: #003366;
     border-bottom: 2px solid #003366;
     padding-bottom: 5px;
@@ -33,6 +25,14 @@
     margin-bottom: 5px;
 }
 
+.jp-MarkdownCell p {
+    font-size: 12pt;
+    /*font-family: 'Computer Modern', 'Latin Modern', serif;/**/
+    color: #000000;
+    text-align: justify;
+    line-height: 1.5;
+}
+
 .jp-CodeCell {
     background-color: #ffffff;
     /*border: 1px solid #eaeaea;*/
@@ -41,25 +41,17 @@
 .jp-CodeMirrorEditor .CodeMirror {
     font-family: 'Consolas', monospace;
     font-size: 11pt;
-    max-width: 994px; /* Setting max width for code editor */
-    margin-left: 20px; /* Center align the editor */
+    /*max-width: 994px; /* Setting max width for code editor */
+    /*margin-left: 20px; /* Center align the editor */
 }
-.jp-MarkdownCell{
-        font-family: 'Computer Modern', 'Latin Modern', serif;
-}
+
 .jp-RenderedText, .jp-OutputArea-output, .jp-CodeCell, .jp-MarkdownCell {
     
     max-width: 994px; /* A4 width in pixels */
     margin-left: 20px; /* Center align the block */
     /*margin-right: auto; /* Center align the block */
 }
-/*
-.jp-OutputArea-output {
-    background-color: #ffffff;
-    border: 1px solid #eaeaea;
-    padding: 10px;
-}
-*/
+
 .jp-OutputArea-output img {
     max-width: 100%;
     height: auto;
@@ -72,7 +64,7 @@
 
 .jp-RenderedHTMLCommon th, .jp-RenderedHTMLCommon td {
     border: 1px solid #dddddd;
-    text-align: left;
+    text-align: justify;
     padding: 8px;
 }
 
