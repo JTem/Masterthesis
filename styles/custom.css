@@ -26,11 +26,19 @@
 }
 
 .jp-MarkdownCell p {
-    font-size: 12pt;
+    font-size: 14pt;
     /*font-family: 'Computer Modern', 'Latin Modern', serif;/**/
     color: #000000;
     text-align: justify;
     line-height: 1.5;
+}
+
+.jp-MarkdownCell li {
+    font-size: 14pt;
+    /*font-family: 'Computer Modern', 'Latin Modern', serif;/**/
+    color: #000000;
+    /*text-align: justify;*/
+    /*line-height: 1.5;*/
 }
 
 .jp-CodeCell {
