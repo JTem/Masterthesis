@@ -14,7 +14,7 @@ class Line:
                 self.dist = np.linalg.norm(delta_dq.getPosition())
                 self.tangent = np.array([0,0,0])
                 if self.dist > 1e-6:
-                        self.tangent = delta_dq.getPosition().flatten()/self.dist
+                        self.tangent = (dq2.getPosition() - dq1.getPosition()).flatten()/self.dist
 
                 self.duration = self.dist/velocity
                 

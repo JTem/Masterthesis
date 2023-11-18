@@ -257,8 +257,6 @@ class DQQBTrajectoryGenerator:
                                                 self.a1_list[i] = (seg2.getAcceleration(half_T_blend))
 
 
-
-
                                 if self.duration_blend_list_quat[i] > 0:
 
                                         max_angular_acc, max_angular_jerk = self.maxAccJerkCubic(self.ang_v0_list[i], self.ang_v1_list[i], np.array([0,0,0]), np.array([0,0,0]), self.duration_blend_list_quat[i]) 
@@ -290,7 +288,6 @@ class DQQBTrajectoryGenerator:
                                                 self.ang_v0_list[i] = self.Segments[i-1].getAngularVelocity()
                                                 self.ang_v1_list[i] = self.Segments[i].getAngularVelocity()
 
-                
                 
                 self.time_blend_start_cart.append(0)
                 self.time_blend_start_quat.append(0)
