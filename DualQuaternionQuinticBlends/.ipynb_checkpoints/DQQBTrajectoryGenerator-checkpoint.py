@@ -363,7 +363,7 @@ class DQQBTrajectoryGenerator:
                 return pos, vel, acc, jerk, quaternion, angular_velocity, angular_acceleration, angular_jerk
         
 
-        def evaluate_DQ(self, t):
+        def evaluateDQ(self, t):
                 seg_cart, cnt_cart = self.determineSegmentType(t, self.time_blend_start_cart, self.duration_blend_list_cart)
                 seg_quat, cnt_quat = self.determineSegmentType(t, self.time_blend_start_quat, self.duration_blend_list_quat)
         
@@ -396,13 +396,15 @@ class DQQBTrajectoryGenerator:
 
                         quaternion = Quaternion.exp(Quaternion(0, log[0], log[1], log[2])*0.5)*self.Segments[cnt_quat].q1
                 
+                # construct pure quaternions from the computed accelerations and velocities
                 w = Quaternion(0, *angular_velocity)
                 w_dot = Quaternion(0, *angular_acceleration)
                 v = Quaternion(0, *vel)
                 a = Quaternion(0, *acc)
                 
+                # compute and return the respective dual quaternions
                 dq = DualQuaternion.fromQuatPos(quaternion, pos)
-                dq_dot = DualDuaternion(0.5*(w*dq.real), 0.5*(w*dq.dual + v*dq.real))
+                dq_dot = DualQuaternion(0.5*(w*dq.real), 0.5*(w*dq.dual + v*dq.real))
                 dq_ddot = DualQuaternion(0.5*(w_dot*dq.real + w*dq_dot.real), 0.5*(w_dot*dq.dual + w*dq_dot.dual+a*dq.real + v*dq_dot.real))
 
                 return dq, dq_dot, dq_ddot
