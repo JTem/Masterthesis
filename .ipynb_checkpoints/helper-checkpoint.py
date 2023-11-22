@@ -6,7 +6,7 @@ import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from neura_dual_quaternions import Quaternion, DualQuaternion
-
+np.set_printoptions(precision=2, suppress=True, linewidth=200, formatter={'float': '{:8.3f}'.format})
 
 def create_3d_plot(qr = Quaternion(1,0,0,0)):
     
