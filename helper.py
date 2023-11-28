@@ -8,6 +8,15 @@ from mpl_toolkits.mplot3d import Axes3D
 from neura_dual_quaternions import Quaternion, DualQuaternion
 np.set_printoptions(precision=2, suppress=True, linewidth=200, formatter={'float': '{:8.3f}'.format})
 
+from Simulation.WaitTime import WaitTime
+from Simulation.MoveJoint import MoveJoint
+from Simulation.MoveLinear import MoveLinear
+
+
+
+def deg2rad(deg):
+        return np.pi/180.0*deg
+
 def create_3d_plot(qr = Quaternion(1,0,0,0)):
     
         plt.ioff()

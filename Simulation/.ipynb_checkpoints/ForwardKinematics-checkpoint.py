@@ -1,0 +1,108 @@
+import numpy as np
+from neura_dual_quaternions import Quaternion, DualQuaternion
+
+class ForwardKinematics:
+        def __init__(self):
+
+                self.d1 = 0.438
+                self.d3 = 0.7
+                self.d5 = 0.7
+                self.d7 = 0.115
+                self.PEE = np.array([[0],[0],[1.953]])
+                self.M = DualQuaternion.fromTranslation(self.PEE)
+
+                self.s1 = DualQuaternion.screwAxis(0,0,1, 0,0,0)
+                self.s2 = DualQuaternion.screwAxis(0,1,0, 0,0,self.d1)
+                self.s3 = DualQuaternion.screwAxis(0,0,1, 0,0,self.d1)
+                self.s4 = DualQuaternion.screwAxis(0,1,0, 0,0,self.d1+self.d3)
+                self.s5 = DualQuaternion.screwAxis(0,0,1, 0,0,self.d1+self.d3)
+                self.s6 = DualQuaternion.screwAxis(0,1,0, 0,0,self.d1+self.d3+self.d5)
+                self.s7 = DualQuaternion.screwAxis(0,0,1, 0,0,self.d1+self.d3+self.d5)
+
+                self.screws_0 = [self.s1, self.s2, self.s3, self.s4, self.s5, self.s6, self.s7]
+    
+        def forward_kinematics(self, theta):
+                x = DualQuaternion.basicConstructor(1,0,0,0, 0,0,0,0)
+                for i in range(len(theta)):
+                        x = x*DualQuaternion.exp(0.5*theta[i]*self.screws_0[i])
+
+                return x*self.M
+    
+        def jacobian(self, theta):
+                x = DualQuaternion.basicConstructor(1,0,0,0, 0,0,0,0)
+                J = np.zeros((8, len(theta)))
+
+                # loop over all joints
+                for i in range(len(theta)):
+
+                        # get screw (defined in base frame) from list
+                        s_0 = self.screws_0[i]
+
+                        #transform screw with the line transformation
+                        s_i = x*s_0*x.inverse()
+
+                        # progress transformation with screw and joint angle
+                        x = x*DualQuaternion.exp(0.5*theta[i]*s_0)
+
+                        J[:, i] = s_i.asVector().flatten()
+
+                return J
+            
+        def jacobian6(self, theta):
+                x = DualQuaternion.basicConstructor(1,0,0,0, 0,0,0,0)
+                J = np.zeros((6, len(theta)))
+
+                # loop over all joints
+                for i in range(len(theta)):
+
+                        # get screw (defined in base frame) from list
+                        s_0 = self.screws_0[i]
+
+                        #transform screw with the line transformation
+                        s_i = x*s_0*x.inverse()
+
+                        # progress transformation with screw and joint angle
+                        x = x*DualQuaternion.exp(0.5*theta[i]*s_0)
+
+                        J[:, i] = s_i.as6Vector().flatten()
+
+                return J
+        
+        def jacobian_dot(self, theta, theta_dot):
+
+                # initialize transformation as identity transformation
+                x = DualQuaternion.basicConstructor(1,0,0,0, 0,0,0,0)
+
+                # initialialize transformation derivative as zero
+                x_dot = DualQuaternion.basicConstructor(0,0,0,0, 0,0,0,0)
+
+                # initialize Jacobian derivative with zeros
+                J_dot = np.zeros((8, len(theta)))
+
+                # loop over all joints
+                for i in range(len(theta)):
+                        # get screw (defined in base frame) from list
+                        s_0 = self.screws_0[i]
+
+                        #compute screw derivative and transform
+                        s_i_dot = x_dot*s_0*x.inverse() + x*s_0*x_dot.inverse()
+
+                        # compute temporary transformation via exponential map
+                        x_temp = DualQuaternion.exp(0.5*theta[i]*s_0)
+
+                        # compute temporary transformation derivative via exponential derivative
+                        x_dot_temp = DualQuaternion.exp(0.5*theta[i]*s_0)*(0.5*theta_dot[i]*s_0)
+
+                        # update transformation derivative
+                        x_dot = x_dot*x_temp + x*x_dot_temp
+
+                        # update transformation
+                        x = x*x_temp
+
+                        #assign screw derivative to jacobian derivative row
+                        J_dot[:, i] = s_i_dot.asVector().flatten()
+
+                return J_dot
+
+
+    
