@@ -1,21 +1,26 @@
 import numpy as np
-import cvxpy as cp
-import time
-from Interpolators import Interpolators
-from ForwardKinematics import ForwardKinematics
+from Simulation.Interpolators import Interpolators
+from Simulation.ForwardKinematics import ForwardKinematics
+from Simulation.DifferentialKinematics import DifferentialKinematics
+from DualQuaternionQuinticBlends import DQQBTrajectoryGenerator
 from neura_dual_quaternions import Quaternion, DualQuaternion
 
 
 
 class MoveTrajectory:
-        def __init__(self, T_target, total_Time):
-                self.T0 = np.eye(4)
-                self.T1 = T_target
-
+        def __init__(self, trajectory):
+                
+                self.trajectory = trajectory
+                self.interpolator = Interpolators()
+                self.diffkin = DifferentialKinematics()
+                
                 self.q = np.zeros(7)
                 self.forward_kinematics = ForwardKinematics()
-
-                self.total_Time = total_Time
+                Tj, Ta, Tv, T = self.interpolator.calculateTotalTime(0, self.trajectory.time_vector[-1], 1, 20, 1000)
+                self.alpha = Ta/T
+                self.beta = Tj/Ta
+        
+                self.total_Time = T
                 self.time = 0
                 self.done = False
 
@@ -25,18 +30,20 @@ class MoveTrajectory:
                 self.current_position = np.zeros(7)
                 self.current_velocity = np.zeros(7)
                 self.current_acceleration = np.zeros(7)
-                self.current_cartesian_postion = np.eye(4)
-                self.interpolator = Interpolators()
+                self.current_cartesian_position = DualQuaternion.basicConstructor(1,0,0,0, 0,0,0,0)
+
         
         def run(self, dt):
                 if self.time < self.total_Time:
                         self.time += dt
-                        self.Qd, self.Qd_dot = self.interpolateDualQuaternion(self.T0, self.T1, self.total_Time, self.time)
+                        
+                        s, _, _ = self.interpolator.timeScaling_S_single(0, self.trajectory.time_vector[-1], self.total_Time, self.alpha, self.beta, self.time)
+                        self.DQd, self.DQd_dot, self.Qd_ddot = self.trajectory.evaluateDQ(s)
 
-                        self.current_velocity = self.differential_kinematics(self.current_position, self.current_velocity, self.Qd, self.Qd_dot)       
+                        self.current_velocity = self.diffkin.differential_kinematics(self.current_position, self.current_velocity, self.DQd, self.DQd_dot)       
 
                         self.current_position = self.current_position + self.current_velocity*dt
-                        self.current_cartesian_postion = self.Qd
+                        self.current_cartesian_position = self.DQd
                 else:
 
                         self.current_velocity = np.zeros(7)
@@ -63,6 +70,6 @@ class MoveTrajectory:
                 self.T0 = T
 
         def getCartesianTarget(self):
-                return self.current_cartesian_postion
+                return self.current_cartesian_position
         
     

@@ -1,10 +1,45 @@
 import math
+import numpy as np
 
 class Interpolators:
         def __init__(self):
                 self.name = "interpolator"
         
-    
+        
+        def calculateTotalTime(self, q0_, q1_, v_max, a_max, j_max):
+                Tj = 0
+                Ta = 0
+                Tv = 0
+                T = 0
+                
+                sigma = sigma = math.copysign(1, q1_ - q0_)
+                
+                q0 = sigma*q0_
+                q1 = sigma*q1_
+                
+                if v_max*j_max >= a_max**2:
+                        Tj = a_max/j_max
+                        Ta = Tj + v_max/a_max
+                else:
+                        Tj = np.sqrt(v_max/j_max)
+                        Ta = 2.0*Tj
+                
+                Tv = (q1 - q0)/v_max - Ta
+                
+                if Tv < 0:
+                        Tv = 0
+                        if (q1 - q0) >= 2.0*(a_max**3/j_max**2):
+                                Tj = a_max/j_max
+                                Ta = 0.5*Tj + np.sqrt((0.5*Tj)**2 + (q1 - q0)/a_max)
+                        else:
+                                Tj = ((q1 - q0)/(2.0*j_max))**(1.0/3.0)
+                                Ta = 2.0*Tj
+                
+                T = Tv + 2.0*Ta
+                
+                return Tj, Ta, Tv, T
+        
+        
         def timeScaling_S_single(self, q0_, q1_, T, alpha, beta, t):
                 sigma = math.copysign(1, q1_ - q0_)
 

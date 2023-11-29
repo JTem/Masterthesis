@@ -572,13 +572,19 @@ class DQQBTrajectoryGenerator:
                 # construct pure quaternions from the computed accelerations and velocities
                 w = Quaternion(0, *angular_velocity)
                 w_dot = Quaternion(0, *angular_acceleration)
+                
+                t = Quaternion(0, *pos)
                 v = Quaternion(0, *vel)
                 a = Quaternion(0, *acc)
                 
                 # compute and return the respective dual quaternions
                 dq = DualQuaternion.fromQuatPos(quaternion, pos)
-                dq_dot = DualQuaternion(0.5*(w*dq.real), 0.5*(w*dq.dual + v*dq.real))
-                dq_ddot = DualQuaternion(0.5*(w_dot*dq.real + w*dq_dot.real), 0.5*(w_dot*dq.dual + w*dq_dot.dual+a*dq.real + v*dq_dot.real))
+               
+                dq_dot = DualQuaternion(0.5*(w*dq.real), 0.5*(v + 0.5*t*w)*dq.real)
+                
+                dq_ddot = DualQuaternion(0.5*(w_dot + 0.5*w*w)*dq.real, 0.5*((a + 0.5*(v*w + t*w_dot)) + 0.5*(v + 0.5*t*w)*w)*dq.real)
+                
+               # dq_ddot = DualQuaternion(0.5*(w_dot*dq.real + w*dq_dot.real), 0.5*(w_dot*dq.dual + w*dq_dot.dual+a*dq.real + v*dq_dot.real))
 
                 return dq, dq_dot, dq_ddot
     

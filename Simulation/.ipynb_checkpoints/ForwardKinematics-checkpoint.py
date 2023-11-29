@@ -8,8 +8,9 @@ class ForwardKinematics:
                 self.d3 = 0.7
                 self.d5 = 0.7
                 self.d7 = 0.115
-                self.PEE = np.array([[0],[0],[1.953]])
-                self.M = DualQuaternion.fromTranslation(self.PEE)
+                self.PEE = np.array([0, 0, 1.953 + 0.3599])
+                tool_orientation = Quaternion.fromAxisAngle(np.pi*0.25, np.array([0,1,0]))
+                self.M = DualQuaternion.fromQuatPos(tool_orientation, self.PEE)
 
                 self.s1 = DualQuaternion.screwAxis(0,0,1, 0,0,0)
                 self.s2 = DualQuaternion.screwAxis(0,1,0, 0,0,self.d1)
