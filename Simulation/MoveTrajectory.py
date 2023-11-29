@@ -40,7 +40,7 @@ class MoveTrajectory:
                         s, _, _ = self.interpolator.timeScaling_S_single(0, self.trajectory.time_vector[-1], self.total_Time, self.alpha, self.beta, self.time)
                         self.DQd, self.DQd_dot, self.Qd_ddot = self.trajectory.evaluateDQ(s)
 
-                        self.current_velocity = self.diffkin.differential_kinematics(self.current_position, self.current_velocity, self.DQd, self.DQd_dot)       
+                        self.current_velocity = self.diffkin.differential_kinematics_DQ(self.current_position, self.current_velocity, self.DQd, self.DQd_dot)       
 
                         self.current_position = self.current_position + self.current_velocity*dt
                         self.current_cartesian_position = self.DQd

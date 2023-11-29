@@ -40,38 +40,25 @@ class DifferentialKinematics:
                 q_dot_ = J_pinv@vel.flatten()
 
                 return q_dot_.flatten()
+        
     
-    
-        def differential_kinematics_cart(self, q, q_dot, Xd, Xdot):
+        def differential_kinematics_DQ(self, q, q_dot, DQd, DQd_dot):
                 x = self.forward_kinematics.forward_kinematics(q)
-
-                quat_real = x.real
-                pos_real = x.getPosition().flatten()
-
-
-                quat_des = Qd.real
-                pos_des = Qd.getPosition().flatten()
-
-                delta_pos = pos_des - pos_real
-
-                delta_quat = quat_des*quat_real.inverse()
-                o_error = delta_quat.log().getVector()
-                flat_o_error = o_error.flatten()
-
-                Omega = Qd_dot*Qd.inverse()*2.0
-                x_dot = Omega.as6Vector()
-
-                error = np.array([flat_o_error[0], flat_o_error[1], flat_o_error[2], delta_pos[0], delta_pos[1], delta_pos[2]])
-                J = self.forward_kinematics.jacobian6(q)
-
+                
+                error = (DQd - x).asVector()
+                
+                J = self.forward_kinematics.jacobian(q)
+                
+                J_H = 0.5*DQd.as_mat_right()@J
+                
                 lamda = 0.0001
-                I = np.eye(J.shape[1])
-                J_pinv = np.linalg.inv(J.T @ J + lamda*I) @ J.T
+                I = np.eye(J_H.shape[1])
+                J_pinv = np.linalg.inv(J_H.T @ J_H + lamda*I) @ J_H.T
+                
 
+                kp = 0
 
-                kp = 20
-
-                vel = x_dot.flatten() + kp*error
+                vel = DQd_dot.asVector() + kp*error
                 q_dot_ = J_pinv@vel.flatten()
 
                 return q_dot_.flatten()

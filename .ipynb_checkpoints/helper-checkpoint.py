@@ -1,7 +1,7 @@
 import ipywidgets as widgets
 import numpy as np
 from collections import deque
-
+import random
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -12,6 +12,85 @@ from Simulation.WaitTime import WaitTime
 from Simulation.MoveJoint import MoveJoint
 from Simulation.MoveLinear import MoveLinear
 
+
+def plotIKResults(error_list_classic, error_list_DQ, success_count_classic, success_count_DQ, num_eval):
+        
+        print("sucess rate classic IK: ", 100.0*success_count_classic/num_eval, "%")
+        print("sucess rate DQ IK: ", 100.0*success_count_DQ/num_eval, "%")
+
+        # Initialize a list to store the sum and count for each position
+        sumsDQ = [0] * 22
+        sum_itDQ = 0
+        # Iterate through each list and position
+        for lst in error_list_DQ:
+                sum_itDQ += len(lst)
+                for i in range(len(lst)):
+                        sumsDQ[i] += lst[i]
+
+        # Initialize a list to store the sum and count for each position
+        sumsC = [0] * 22
+        sum_itC = 0
+        # Iterate through each list and position
+        for lst in error_list_classic:
+                sum_itC += len(lst)
+                for i in range(len(lst)):
+                        sumsC[i] += lst[i]
+        
+        # Calculate the average for each position
+        average_error_DQ = np.array(sumsDQ) / num_eval
+        average_error_C = np.array(sumsC) / num_eval
+
+        print("average num of iterations for classic IK: ", sum_itC/num_eval)
+        print("average num of iterations for DQ IK: ", sum_itDQ/num_eval)
+
+        # Plotting error_norm
+        plt.figure(figsize=(12, 12))
+        plt.subplot(2, 1, 1)
+        for i, sublist in enumerate(error_list_classic):
+                plt.plot(sublist, color='g', alpha = 0.02)
+        plt.plot(average_error_C, color = "m")
+        plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+        plt.yscale('log')
+        plt.title('Results Classic IK')
+        plt.xlabel('Iterations')
+        plt.ylabel('Error Norm')
+
+        plt.subplot(2, 1, 2)
+        for i, sublist in enumerate(error_list_DQ):
+                plt.plot(sublist, color='b', alpha = 0.02)
+        plt.plot(average_error_DQ, color = "r")
+        plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+        plt.yscale('log')
+        plt.title('Results Dual Quaternion IK')
+        plt.xlabel('Iterations')
+        plt.ylabel('Error Norm')
+
+        # Show the plots
+        plt.tight_layout()
+        plt.show()
+        
+        
+        
+def getRandomJointAngles():
+        q1 = random.uniform(-np.pi, np.pi)
+        q2 = random.uniform(-120*np.pi/180, 120*np.pi/180)
+        q3 = random.uniform(-np.pi, np.pi)
+        q4 = random.uniform(-150*np.pi/180, 150*np.pi/180)
+        q5 = random.uniform(-np.pi, np.pi)
+        q6 = random.uniform(-np.pi, np.pi)
+        q7 = random.uniform(-np.pi, np.pi)
+    
+        q = np.array([q1, q2, q3, q4, q5, q6, q7])
+        
+        return q
+
+def perturbJointAngles(q, perturbation_in_deg):
+        
+        qpert = []
+        for i in range(7):
+                qpert.append(random.uniform(-perturbation_in_deg*np.pi/180, perturbation_in_deg*np.pi/180))
+        
+        return q + np.array(qpert)
 
 
 def deg2rad(deg):

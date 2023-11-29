@@ -583,8 +583,6 @@ class DQQBTrajectoryGenerator:
                 dq_dot = DualQuaternion(0.5*(w*dq.real), 0.5*(v + 0.5*t*w)*dq.real)
                 
                 dq_ddot = DualQuaternion(0.5*(w_dot + 0.5*w*w)*dq.real, 0.5*((a + 0.5*(v*w + t*w_dot)) + 0.5*(v + 0.5*t*w)*w)*dq.real)
-                
-               # dq_ddot = DualQuaternion(0.5*(w_dot*dq.real + w*dq_dot.real), 0.5*(w_dot*dq.dual + w*dq_dot.dual+a*dq.real + v*dq_dot.real))
 
                 return dq, dq_dot, dq_ddot
     
