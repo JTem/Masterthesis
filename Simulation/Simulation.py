@@ -27,7 +27,7 @@ class Simulation:
                 s = 0
 
                 env = Swift()
-                env.launch(realtime=False)
+                env.launch(realtime=True)
 
                 # Make a panda model and set its joint angles to the ready joint configuration
                 maira = rtb.models.URDF.Maira7M()
@@ -42,6 +42,7 @@ class Simulation:
                 env.add(T_target)
                                    
                 command_executor = CommandExecutor(self.task_list, maira.q, 2, 7)
+                dt = 0.01
                 while running:
 
                         if command_executor.done:
@@ -55,11 +56,12 @@ class Simulation:
                         Tee.T = self.forward_kinematics.forward_kinematics(q).asTransformation()
                         T_target.T = command_executor.getCartesianTarget().asTransformation()
                                    
-                        current_time = time.time()
-                        dt = (current_time - last_time)
-                        last_time = current_time
-                        count = count + 1
-                        t = t + dt
+                        # current_time = time.time()
+                        # dt2 = (current_time - last_time)
+                        # print(dt2)
+                        # last_time = current_time
+                        # count = count + 1
+                        # t = t + dt
 
                         env.step(dt)
 
