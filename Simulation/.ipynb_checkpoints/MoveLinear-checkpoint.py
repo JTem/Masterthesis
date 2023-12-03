@@ -1,6 +1,6 @@
 import numpy as np
 import time
-from Simulation.Interpolators import Interpolators
+from Simulation.LinearInterpolator import LinearInterpolator
 from Simulation.ForwardKinematics import ForwardKinematics
 from Simulation.DifferentialKinematics import DifferentialKinematics
 from neura_dual_quaternions import Quaternion, DualQuaternion
@@ -10,7 +10,7 @@ class MoveLinear:
         def __init__(self, x_target, total_Time):
                 self.x0 = DualQuaternion.basicConstructor(1,0,0,0, 0,0,0,0)
                 self.x1 = x_target
-
+                
                 self.q = np.zeros(7)
                 self.forward_kinematics = ForwardKinematics()
                 self.diffkin = DifferentialKinematics()
@@ -25,12 +25,12 @@ class MoveLinear:
                 self.current_velocity = np.zeros(7)
                 self.current_acceleration = np.zeros(7)
                 self.current_cartesian_position = DualQuaternion.basicConstructor(1,0,0,0, 0,0,0,0)
-                self.interpolator = Interpolators()
+                #self.interpolator = Interpolators()
         
         def run(self, dt):
                 if self.time < self.total_Time:
                         self.time += dt
-                        self.DQd, self.DQd_dot = self.interpolateDualQuaternion(self.x0, self.x1, self.total_Time, self.time)
+                        self.DQd, self.DQd_dot, self.DQd_ddot = self.trajectory.evaluateDQ(self.time)
                         
                         #self.current_velocity = self.diffkin.differential_kinematics(self.current_position, self.current_velocity, self.DQd, self.DQd_dot)
                         self.current_velocity = self.diffkin.quadratic_program_2(self.current_position, self.current_velocity, self.DQd, self.DQd_dot)
@@ -45,12 +45,12 @@ class MoveLinear:
                         self.done = True
     
     
-        def interpolateDualQuaternion(self, x0, x1, total_Time, time):
-                s, s_dot, s_ddot = self.interpolator.timeScaling_S_single(0, 1, total_Time, 0.4, 0.3, time)
-                Qd = DualQuaternion.sclerp(x0, x1, s)
-                Qd_dot = DualQuaternion.sclerp_dot(x0, x1, s, s_dot)
+#         def interpolateDualQuaternion(self, x0, x1, total_Time, time):
+#                 s, s_dot, s_ddot = self.interpolator.timeScaling_S_single(0, 1, total_Time, 0.4, 0.3, time)
+#                 Qd = DualQuaternion.sclerp(x0, x1, s)
+#                 Qd_dot = DualQuaternion.sclerp_dot(x0, x1, s, s_dot)
 
-                return Qd, Qd_dot
+#                 return Qd, Qd_dot
     
         def reset(self):
                 self.time = 0
@@ -70,6 +70,7 @@ class MoveLinear:
 
         def setStartCartPosition(self, x):
                 self.x0 = x
+                self.trajectory = LinearInterpolator(self.x0, self.x1, self.total_Time)
 
         def getCartesianTarget(self):
                 return self.current_cartesian_position

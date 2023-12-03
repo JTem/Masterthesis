@@ -168,41 +168,6 @@ class DifferentialKinematics:
                 self.q_dot_last_ = q_dot_.copy()
                 return q_dot_
 
-        def quadratic_program_3(self, q, q_dot, DQd, DQd_dot):
-        
-                x = self.forward_kinematics.forward_kinematics(q)
-                
-                error = (DQd - x).asVector()
-                
-                J = self.forward_kinematics.jacobian(q)
-                
-                J_H = 0.5*DQd.as_mat_right()@J
-
-                kp = 20.0
-                W = np.eye(8)
-                P = J_H.T @ W @ J_H
-                q = -J_H.T @ W @ (DQd_dot.asVector() + kp*error).flatten()
-
-                # Convert P to a sparse matrix
-                P = sp.csc_matrix(P)
-
-                # No inequality constraints
-                A = sp.csc_matrix((0, 8))  # Zero rows as there are no constraints
-                l = np.array([])
-                u = np.array([])
-
-                # Create an OSQP object
-                prob = osqp.OSQP()
-
-                # Setup workspace
-                prob.setup(P, q, A, l, u, alpha=1.0, verbose=False)
-
-                # Solve the problem
-                res = prob.solve()
-
-                # Extract the solution
-                q_dot_ = res.x
-                return q_dot_
 
         def quadratic_program_2(self, q, q_dot, DQd, DQd_dot):
                 
@@ -215,10 +180,10 @@ class DifferentialKinematics:
                 
                 J_H = 0.5*DQd.as_mat_right()@J
 
-                kp = 20.0
+                kp = 50.0
 
                 # Define OSQP data
-                P = sp.block_diag((0.1*np.eye(7), 100000*np.eye(4)))  # Quadratic term
+                P = sp.block_diag((0.001*np.eye(7), 100000*np.eye(4)))  # Quadratic term
                 q = np.zeros(11)                # Linear term
 
                 # Define constraint matrix and bounds
@@ -230,6 +195,7 @@ class DifferentialKinematics:
                                          [0,0,0,0],
                                          [0,0,0,0],
                                          [0,0,0,0]])
+                
                 slack_matrix2 = np.array([[0,0,0,0, 0,0,0, 1,0,0,0],
                                           [0,0,0,0, 0,0,0, 0,1,0,0],
                                           [0,0,0,0, 0,0,0, 0,0,1,0],
@@ -237,7 +203,8 @@ class DifferentialKinematics:
                 
                 test = np.hstack([J_H, slack_matrix])
                 test2 = np.vstack([test, slack_matrix2])
-                #print(test2)
+                
+                
                 A = sp.csc_matrix(test2)
                 l = np.concatenate([(DQd_dot.asVector() + kp*error).flatten(), -np.inf * np.ones(4)])
                 u = np.concatenate([(DQd_dot.asVector() + kp*error).flatten(), np.inf * np.ones(4)])
@@ -300,7 +267,7 @@ class DifferentialKinematics:
                 
                 test = np.hstack([J, slack_matrix])
                 test2 = np.vstack([test, slack_matrix2])
-                print(test2)
+
                 A = sp.csc_matrix(test2)
                 l = np.concatenate([(x_dot.flatten() + kp*error), -np.inf * np.ones(3)])
                 u = np.concatenate([(x_dot.flatten() + kp*error), np.inf * np.ones(3)])

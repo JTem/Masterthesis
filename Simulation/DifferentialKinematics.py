@@ -180,10 +180,10 @@ class DifferentialKinematics:
                 
                 J_H = 0.5*DQd.as_mat_right()@J
 
-                kp = 20.0
+                kp = 50.0
 
                 # Define OSQP data
-                P = sp.block_diag((0.1*np.eye(7), 100000*np.eye(4)))  # Quadratic term
+                P = sp.block_diag((0.001*np.eye(7), 100000*np.eye(4)))  # Quadratic term
                 q = np.zeros(11)                # Linear term
 
                 # Define constraint matrix and bounds
