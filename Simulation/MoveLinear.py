@@ -32,8 +32,10 @@ class MoveLinear:
                         self.time += dt
                         self.DQd, self.DQd_dot = self.interpolateDualQuaternion(self.x0, self.x1, self.total_Time, self.time)
                         
-                        self.current_velocity = self.diffkin.differential_kinematics(self.current_position, self.current_velocity, self.DQd, self.DQd_dot)
-
+                        #self.current_velocity = self.diffkin.differential_kinematics(self.current_position, self.current_velocity, self.DQd, self.DQd_dot)
+                        self.current_velocity = self.diffkin.quadratic_program_2(self.current_position, self.current_velocity, self.DQd, self.DQd_dot)
+                        #self.current_velocity = self.diffkin.qrmc(self.current_position, self.current_velocity, self.DQd, self.DQd_dot, dt)
+                        
                         self.current_position = self.current_position + self.current_velocity*dt
                         self.current_cartesian_position = self.DQd
                 else:

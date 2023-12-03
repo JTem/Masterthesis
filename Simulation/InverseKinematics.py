@@ -73,15 +73,15 @@ class InverseKinematics:
                         I = np.eye(J.shape[0])
                         
                         x_error = x_target*x_act.inverse()
+                        
                         pos_error = x_error.getPosition().flatten()
                         orientation_error = 2.0*x_error.real.log().getVector().flatten()
-                        #pos_error = (x_target.getPosition() - x_act.getPosition()).flatten()
-                        #orientation_error = 2*(x_target.real*x_act.real.inverse()).log().getVector().flatten()
+                        
                                      
                         # error calculation
                         pos_error_norm = np.linalg.norm(pos_error)
                         orientation_error_norm = np.linalg.norm(orientation_error)
-                        #print(orientation_error_norm, np.linalg.norm(orientation_error))
+          
                         error_norm = pos_error_norm + orientation_error_norm
                         
                         error_norm_list.append(error_norm)

@@ -3,7 +3,10 @@ import matplotlib.pyplot as plt
 from neura_dual_quaternions import DualQuaternion, Quaternion
 
 class DQQBTrajectoryGenerator:
-        def __init__(self, Segments, a_max, j_max, ang_acc_max, ang_jerk_max):
+        def __init__(self):
+                self.min_blend_duration = 0.002
+                
+        def generateDynamicTrajectory(self, Segments, a_max, j_max, ang_acc_max, ang_jerk_max):
                 self.Segments = Segments
 
                 self.a_max = a_max if a_max >= 0.1 else 0.1
@@ -12,16 +15,13 @@ class DQQBTrajectoryGenerator:
                 self.ang_acc_max = ang_acc_max if ang_acc_max >= 0.1 else 0.1
                 self.ang_jerk_max = ang_jerk_max if ang_jerk_max >= 1 else 1
 
-                self.min_blend_duration = 0.002
-
                 for s in self.Segments:
                         if s.duration < self.min_blend_duration:
                                 self.Segments.remove(s)
 
                 self.num_segments = len(Segments)
-
-                self.duration_blend_list_cart = []
-                self.duration_blend_list_quat = []
+                self.num_blends = len(Segments)+1
+                self.duration_blend_list = []
 
                 self.p0_list = []
                 self.p1_list = []
@@ -29,17 +29,282 @@ class DQQBTrajectoryGenerator:
                 self.v1_list = []
                 self.a0_list = []
                 self.a1_list = []
-
+                
+                self.q0_list = []
+                
                 self.ang_v0_list = []
                 self.ang_v1_list = []
 
-                self.time_blend_start_cart = []
-                self.time_blend_start_quat = []
+                self.time_blend_start = []
 
                 self.time_vector = []
-                #self.generateTrajectoryParameters()
-                self.generateTrajectoryParametersRadius(0.01)
-    
+                self.generateTrajectoryParameters()
+                
+                
+        def generateTrajectoryParameters(self):
+                
+                for i in range(0, self.num_blends):
+                        self.duration_blend_list.append(self.min_blend_duration)                
+                
+                
+                blend_time = self.min_blend_duration*0.5
+                #first blend:
+                seg = self.Segments[0]
+                self.p0_list.append(seg.getPosition(0))
+                self.p1_list.append(seg.getPosition(blend_time))
+
+                self.ang_v0_list.append(np.array([0,0,0]))
+                self.ang_v1_list.append(seg.getAngularVelocity())
+
+                self.v0_list.append(np.array([0,0,0]))
+                self.v1_list.append(seg.getVelocity(blend_time))
+
+                self.a0_list.append(np.array([0,0,0]))
+                self.a1_list.append(seg.getAcceleration(blend_time))
+                self.q0_list.append(seg.q1)
+                
+                for i in range(1, self.num_blends-1):
+                        first_segment = self.Segments[i-1]
+                        second_segment = self.Segments[i]
+
+                        self.p0_list.append(first_segment.getPosition(first_segment.duration - blend_time))
+                        self.p1_list.append(second_segment.getPosition(blend_time))
+
+                        self.ang_v0_list.append(first_segment.getAngularVelocity())
+                        self.ang_v1_list.append(second_segment.getAngularVelocity())
+
+                        self.v0_list.append(first_segment.getVelocity(first_segment.duration - blend_time))
+                        self.v1_list.append(second_segment.getVelocity(blend_time))
+
+                        self.a0_list.append(first_segment.getAcceleration(first_segment.duration - blend_time))
+                        self.a1_list.append(second_segment.getAcceleration(blend_time))
+                        self.q0_list.append(second_segment.q1)
+                        
+                #last blend:
+                seg = self.Segments[-1]
+                self.p0_list.append(seg.getPosition(seg.duration - blend_time))
+                self.p1_list.append(seg.getPosition(seg.duration))
+
+                self.ang_v0_list.append(seg.getAngularVelocity())
+                self.ang_v1_list.append(np.array([0,0,0]))
+
+                self.v0_list.append(seg.getVelocity(seg.duration - blend_time))
+                self.v1_list.append(np.array([0,0,0]))
+
+                self.a0_list.append(seg.getAcceleration(seg.duration - blend_time))
+                self.a1_list.append(np.array([0,0,0]))
+                self.q0_list.append(seg.q2)
+                
+                
+                cnt = 0
+                blend_phase_overlap = True
+                max_acc_limit_violated = True
+                while (blend_phase_overlap or max_acc_limit_violated) or cnt < 10:
+                        
+                        cnt += 1
+                        print("iteration: ", cnt)
+                        
+                        if cnt > 150:
+                                break
+                                
+                        max_acc_limit_violated = False
+                        for i in range(0, self.num_blends):
+                                max_acc, max_jerk = self.maxAccJerkQuintic(self.p0_list[i], self.p1_list[i], self.v0_list[i], self.v1_list[i], self.a0_list[i], self.a1_list[i], self.duration_blend_list[i]) 
+                                max_angular_acc, max_angular_jerk = self.maxAccJerkCubic(self.ang_v0_list[i], self.ang_v1_list[i], np.array([0,0,0]), np.array([0,0,0]), self.duration_blend_list[i])
+                                
+                                a_lim = max([self.a_max, np.linalg.norm(self.a0_list[i]), np.linalg.norm(self.a1_list[i])])
+                                
+                                lamda_acc = max(max_acc/a_lim, max_angular_acc/self.ang_acc_max)
+                                if max_angular_acc > self.ang_acc_max*1.01 or max_acc > a_lim*1.01:
+                                        print("acceleration limit violated!")
+                                        max_acc_limit_violated = True
+                                                
+                                self.duration_blend_list[i] *= lamda_acc
+
+                                if self.duration_blend_list[i] < self.min_blend_duration:
+                                        self.duration_blend_list[i] = self.min_blend_duration
+                                        
+                                half_T_blend = self.duration_blend_list[i]*0.5
+                                if i == 0:
+                                        seg = self.Segments[0]
+                                        self.p1_list[i] = (seg.getPosition(half_T_blend))
+                                        self.v1_list[i] = (seg.getVelocity(half_T_blend))
+                                        self.a1_list[i] = (seg.getAcceleration(half_T_blend))
+                                        
+                                elif i == self.num_blends-1:
+                                        seg = self.Segments[-1]
+                                        self.p0_list[i] = (seg.getPosition(seg.duration - half_T_blend))
+                                        self.v0_list[i] = (seg.getVelocity(seg.duration - half_T_blend))
+                                        self.a0_list[i] = (seg.getAcceleration(seg.duration - half_T_blend))
+           
+                                else:
+                                        seg1 = self.Segments[i-1]
+                                        seg2 = self.Segments[i]
+                                        self.p0_list[i] = (seg1.getPosition(seg1.duration - half_T_blend))
+                                        self.p1_list[i] = (seg2.getPosition(half_T_blend))
+
+                                        self.v0_list[i] = (seg1.getVelocity(seg1.duration - half_T_blend))
+                                        self.v1_list[i] = (seg2.getVelocity(half_T_blend))
+
+                                        self.a0_list[i] = (seg1.getAcceleration(seg1.duration - half_T_blend))
+                                        self.a1_list[i] = (seg2.getAcceleration(half_T_blend))
+                                        
+                                        
+                                        
+                                max_acc, max_jerk = self.maxAccJerkQuintic(self.p0_list[i], self.p1_list[i], self.v0_list[i], self.v1_list[i], self.a0_list[i], self.a1_list[i], self.duration_blend_list[i]) 
+                                max_angular_acc, max_angular_jerk = self.maxAccJerkCubic(self.ang_v0_list[i], self.ang_v1_list[i], np.array([0,0,0]), np.array([0,0,0]), self.duration_blend_list[i]) 
+                                
+                                lamda_jerk = max(np.sqrt(max_angular_jerk/self.ang_jerk_max), np.sqrt(max_jerk/self.j_max))
+                                
+                                if max_jerk > self.j_max or max_angular_jerk > self.ang_jerk_max:
+                                        self.duration_blend_list[i] *= lamda_jerk
+
+                                        if self.duration_blend_list[i] < self.min_blend_duration:
+                                                self.duration_blend_list[i] = self.min_blend_duration
+                                                
+                                        half_T_blend = self.duration_blend_list[i]*0.5
+                                        if i == 0:
+                                                seg = self.Segments[0]
+                                                self.p1_list[i] = (seg.getPosition(half_T_blend))
+                                                self.v1_list[i] = (seg.getVelocity(half_T_blend))
+                                                self.a1_list[i] = (seg.getAcceleration(half_T_blend))
+
+                                        elif i == self.num_blends-1:
+                                                seg = self.Segments[-1]
+                                                self.p0_list[i] = (seg.getPosition(seg.duration - half_T_blend))
+                                                self.v0_list[i] = (seg.getVelocity(seg.duration - half_T_blend))
+                                                self.a0_list[i] = (seg.getAcceleration(seg.duration - half_T_blend))
+
+                                        else:
+                                                seg1 = self.Segments[i-1]
+                                                seg2 = self.Segments[i]
+                                                self.p0_list[i] = (seg1.getPosition(seg1.duration - half_T_blend))
+                                                self.p1_list[i] = (seg2.getPosition(half_T_blend))
+
+                                                self.v0_list[i] = (seg1.getVelocity(seg1.duration - half_T_blend))
+                                                self.v1_list[i] = (seg2.getVelocity(half_T_blend))
+
+                                                self.a0_list[i] = (seg1.getAcceleration(seg1.duration - half_T_blend))
+                                                self.a1_list[i] = (seg2.getAcceleration(half_T_blend))
+                                        
+                                                
+                        blend_phase_overlap = False
+                        for i in range(0, self.num_segments):
+                                if 0.5*(self.duration_blend_list[i] + self.duration_blend_list[i+1]) > self.Segments[i].duration:
+
+                                        self.Segments[i].duration *= 1.05  
+                                        
+                                        print("blendphases overlapped")
+                                        blend_phase_overlap = True
+
+                                        seg = self.Segments[i]
+                                        self.p1_list[i] = (seg.getPosition(self.duration_blend_list[i]*0.5))
+                                        self.v1_list[i] = (seg.getVelocity(self.duration_blend_list[i]*0.5))
+                                        self.a1_list[i] = (seg.getAcceleration(self.duration_blend_list[i]*0.5))
+
+                                        self.p0_list[i+1] = (seg.getPosition(seg.duration - self.duration_blend_list[i+1]*0.5))
+                                        self.v0_list[i+1] = (seg.getVelocity(seg.duration - self.duration_blend_list[i+1]*0.5))
+                                        self.a0_list[i+1] = (seg.getAcceleration(seg.duration - self.duration_blend_list[i+1]*0.5))
+
+                                        self.ang_v1_list[i] = (seg.getAngularVelocity())
+                                        self.ang_v0_list[i+1] = (seg.getAngularVelocity())
+                        
+
+            
+                self.time_blend_start.append(0)
+                self.time_vector.append(0)
+                
+                print(self.duration_blend_list)
+                for i in range(0,self.num_segments):
+                        duration_sum = self.duration_blend_list[0]*0.5
+                        for j in range(i+1):
+                                duration_sum += self.Segments[j].duration
+                                # if j == 0:
+                                #         duration_sum += self.duration_blend_list[0]*0.5
+                        self.time_vector.append(duration_sum)
+                        self.time_blend_start.append(duration_sum - self.duration_blend_list[i+1]*0.5)               
+                
+                self.time_vector[-1] += self.duration_blend_list[-1]*0.5
+                
+
+        def evaluate(self, t):
+                seg, cnt = self.determineSegmentType(t, self.time_blend_start, self.duration_blend_list)
+
+                if seg == "blend":
+                        dt = t - self.time_blend_start[cnt]
+                        pos, vel, acc, jerk = self.quinticPolynomial(self.p0_list[cnt], self.p1_list[cnt], self.v0_list[cnt], self.v1_list[cnt], self.a0_list[cnt], self.a1_list[cnt], dt, self.duration_blend_list[cnt])
+                        
+                        log, angular_velocity, angular_acceleration, angular_jerk = self.cubicPolynomial(self.ang_v0_list[cnt], self.ang_v1_list[cnt], np.array([0,0,0]), np.array([0,0,0]), dt, self.duration_blend_list[cnt])
+
+                        log -= self.ang_v0_list[cnt]*0.5*self.duration_blend_list[cnt]
+
+                        quaternion = Quaternion.exp(Quaternion(0, *log)*0.5)*self.q0_list[cnt]
+                
+                if seg == "lin":
+                        dt = t - self.time_blend_start[cnt] - 0.5*self.duration_blend_list[cnt]
+                        jerk = np.array([0,0,0])
+                        acc = self.Segments[cnt].getAcceleration(dt)
+                        vel = self.Segments[cnt].getVelocity(dt)
+                        pos = self.Segments[cnt].getPosition(dt)
+                        
+                        angular_jerk = np.array([0,0,0])
+                        angular_acceleration = np.array([0,0,0])
+                        angular_velocity = self.Segments[cnt].getAngularVelocity()
+
+                        log = angular_velocity*dt
+
+                        quaternion = Quaternion.exp(Quaternion(0, *log)*0.5)*self.q0_list[cnt]
+                
+                
+                return pos, vel, acc, jerk, quaternion, angular_velocity, angular_acceleration, angular_jerk
+        
+        
+        def evaluateDQ(self, t):
+                seg, cnt = self.determineSegmentType(t, self.time_blend_start, self.duration_blend_list)
+
+                if seg == "blend":
+                        dt = t - self.time_blend_start[cnt]
+                        pos, vel, acc, jerk = self.quinticPolynomial(self.p0_list[cnt], self.p1_list[cnt], self.v0_list[cnt], self.v1_list[cnt], self.a0_list[cnt], self.a1_list[cnt], dt, self.duration_blend_list[cnt])
+                        
+                        log, angular_velocity, angular_acceleration, angular_jerk = self.cubicPolynomial(self.ang_v0_list[cnt], self.ang_v1_list[cnt], np.array([0,0,0]), np.array([0,0,0]), dt, self.duration_blend_list[cnt])
+
+                        log -= self.ang_v0_list[cnt]*0.5*self.duration_blend_list[cnt]
+
+                        quaternion = Quaternion.exp(Quaternion(0, *log)*0.5)*self.q0_list[cnt]
+                
+                if seg == "lin":
+                        dt = t - self.time_blend_start[cnt] - 0.5*self.duration_blend_list[cnt]
+                        jerk = np.array([0,0,0])
+                        acc = self.Segments[cnt].getAcceleration(dt)
+                        vel = self.Segments[cnt].getVelocity(dt)
+                        pos = self.Segments[cnt].getPosition(dt)
+                        
+                        angular_jerk = np.array([0,0,0])
+                        angular_acceleration = np.array([0,0,0])
+                        angular_velocity = self.Segments[cnt].getAngularVelocity()
+
+                        log = angular_velocity*dt
+
+                        quaternion = Quaternion.exp(Quaternion(0, *log)*0.5)*self.q0_list[cnt]
+                
+                # construct pure quaternions from the computed accelerations and velocities
+                w = Quaternion(0, *angular_velocity)
+                w_dot = Quaternion(0, *angular_acceleration)
+                
+                t = Quaternion(0, *pos)
+                v = Quaternion(0, *vel)
+                a = Quaternion(0, *acc)
+                
+                # compute and return the respective unit dual quaternions
+                dq = DualQuaternion.fromQuatPos(quaternion, pos)
+               
+                dq_dot = DualQuaternion(0.5*(w*dq.real), 0.5*(v + 0.5*t*w)*dq.real)
+                
+                dq_ddot = DualQuaternion(0.5*(w_dot + 0.5*w*w)*dq.real, 0.5*((a + 0.5*(v*w + t*w_dot)) + 0.5*(v + 0.5*t*w)*w)*dq.real)
+
+                return dq, dq_dot, dq_ddot
+
+        
         def quinticPolynomial(self, pos0, pos1, vel0, vel1, acc0, acc1, t, T):
                 h = pos1 - pos0
 
@@ -92,7 +357,7 @@ class DQQBTrajectoryGenerator:
 
                 for i in range(10):
                         gradient = self.quinticJerkGradient(pos0, pos1, vel0, vel1, acc0, acc1, t, T)
-                        t -= 0.05/(i+1)*T*np.sign(gradient)
+                        t -= 0.02/(i+1)*T*np.sign(gradient)
 
                 _, _, acceleration1, jerk1 = self.quinticPolynomial(pos0, pos1, vel0, vel1, acc0, acc1, 0, T)
                 _, _, acceleration2, jerk2 = self.quinticPolynomial(pos0, pos1, vel0, vel1, acc0, acc1, T, T)
@@ -125,357 +390,6 @@ class DQQBTrajectoryGenerator:
                 acc_max = max([np.linalg.norm(acceleration1), np.linalg.norm(acceleration2), np.linalg.norm(acceleration3)])
 
                 return acc_max, jerk_max
-    
-        def generateTrajectoryParametersRadius(self, blend_radius):
-                
-                self.duration_blend_list_cart.append(0)
-                self.duration_blend_list_quat.append(0)
-                for i in range(0, self.num_segments-1):
-                        self.duration_blend_list_cart.append(self.min_blend_duration)
-                        self.duration_blend_list_quat.append(self.min_blend_duration)
-                self.duration_blend_list_cart.append(0)
-                self.duration_blend_list_quat.append(0)
-                
-                for i in range(0, len(self.duration_blend_list_cart)):
-
-                        if self.duration_blend_list_cart[i] > 0:
-                                
-                                first_segment = self.Segments[i-1]
-                                second_segment = self.Segments[i]
-                                first_segment_duration = first_segment.duration
-                                second_segment_duration = second_segment.duration
-                                
-                                first_segment_dist = first_segment.dist
-                                second_segment_dist = second_segment.dist
-                                
-                                velocity1 = (first_segment_dist/first_segment_duration)
-                                velocity2 = (second_segment_dist/second_segment_duration)
-                                
-                                blend_time1 = first_segment_duration*0.5
-                                if velocity1 > 0.0:
-                                        blend_time1 = min(blend_radius/velocity1, first_segment_duration*0.5)
-                                        
-                                blend_time2 = second_segment_duration*0.5
-                                if velocity2 > 0.0:
-                                        blend_time2 = min(blend_radius/velocity2, second_segment_duration*0.5)
-                                
-                                blend_time = min(blend_time1, blend_time2)
-                                
-                                self.duration_blend_list_cart[i] = (2*blend_time)
-                                #self.duration_blend_list_quat[i] = (2*blend_time)
-                        
-                                self.p0_list.append(first_segment.getPosition(first_segment_duration - blend_time))
-                                self.p1_list.append(second_segment.getPosition(blend_time))
-
-                                self.ang_v0_list.append(first_segment.getAngularVelocity())
-                                self.ang_v1_list.append(second_segment.getAngularVelocity())
-
-                                self.v0_list.append(first_segment.getVelocity(first_segment_duration - blend_time))
-                                self.v1_list.append(second_segment.getVelocity(blend_time))
-
-                                self.a0_list.append(first_segment.getAcceleration(first_segment_duration - blend_time))
-                                self.a1_list.append(second_segment.getAcceleration(blend_time))
-                        else:
-                                self.p0_list.append(np.array([0,0,0]))
-                                self.p1_list.append(np.array([0,0,0]))
-
-                                self.ang_v0_list.append(np.array([0,0,0]))
-                                self.ang_v1_list.append(np.array([0,0,0]))
-
-                                self.v0_list.append(np.array([0,0,0]))
-                                self.v1_list.append(np.array([0,0,0]))
-                                self.a0_list.append(np.array([0,0,0]))
-                                self.a1_list.append(np.array([0,0,0]))
-                                
-                cnt = 0               
-                blend_phase_overlap = True
-                blend_phase_overlap_quat = True
-                while (blend_phase_overlap or max_acc_limit_violated_quat) or cnt < 10:
-                        
-                        cnt += 1
-                        print("cnt: ", cnt)
-                        blend_phase_overlap = False
-                        for i in range(self.num_segments-1):
-
-                                if 0.5*(self.duration_blend_list_quat[i] + self.duration_blend_list_quat[i+1]) > self.Segments[i].duration:
-
-                                        self.Segments[i].duration *= 1.05  
-                                
-                                        print("blendphases overlapped")
-                                        blend_phase_overlap = True
-
-                                        seg = self.Segments[i]
-
-                                        self.ang_v1_list[i] = (seg.getAngularVelocity())
-                                        self.ang_v0_list[i+1] = (seg.getAngularVelocity())
-
-                         
-                        for i in range(0, len(self.duration_blend_list_cart)):
-
-                                if self.duration_blend_list_cart[i] > 0:
-
-                                        first_segment = self.Segments[i-1]
-                                        second_segment = self.Segments[i]
-                                        first_segment_duration = first_segment.duration
-                                        second_segment_duration = second_segment.duration
-
-                                        first_segment_dist = first_segment.dist
-                                        second_segment_dist = second_segment.dist
-
-                                        velocity1 = (first_segment_dist/first_segment_duration)
-                                        velocity2 = (second_segment_dist/second_segment_duration)
-
-                                        blend_time1 = first_segment_duration*0.5
-                                        if velocity1 > 0.0:
-                                                blend_time1 = min(blend_radius/velocity1, first_segment_duration*0.5)
-
-                                        blend_time2 = second_segment_duration*0.5
-                                        if velocity2 > 0.0:
-                                                blend_time2 = min(blend_radius/velocity2, second_segment_duration*0.5)
-
-                                        blend_time = min(blend_time1, blend_time2)
-
-                                        self.duration_blend_list_cart[i] = (2*blend_time)
-                                        
-
-                                        self.p0_list[i] = (first_segment.getPosition(first_segment_duration - blend_time))
-                                        self.p1_list[i] = (second_segment.getPosition(blend_time))
-
-                                        self.ang_v0_list[i] = (first_segment.getAngularVelocity())
-                                        self.ang_v1_list[i] = (second_segment.getAngularVelocity())
-
-                                        self.v0_list[i] = (first_segment.getVelocity(first_segment_duration - blend_time))
-                                        self.v1_list[i] = (second_segment.getVelocity(blend_time))
-
-                                        self.a0_list[i] = (first_segment.getAcceleration(first_segment_duration - blend_time))
-                                        self.a1_list[i] = (second_segment.getAcceleration(blend_time))
-                                        
-                                        
-                        max_acc_limit_violated_quat = False 
-                        for i in range(self.num_segments+1):
-                                
-                                if self.duration_blend_list_quat[i] > 0:
-
-                                        max_angular_acc, max_angular_jerk = self.maxAccJerkCubic(self.ang_v0_list[i], self.ang_v1_list[i], np.array([0,0,0]), np.array([0,0,0]), self.duration_blend_list_quat[i]) 
-
-                                        lamda_acc = max_angular_acc/self.ang_acc_max
-
-                                        if max_angular_acc > self.ang_acc_max*1.01:
-                                                print("acceleration limit for orientation interpolation violated!")
-                                                max_acc_limit_violated_quat = True
-
-                                        self.duration_blend_list_quat[i] *= lamda_acc
-
-                                        if self.duration_blend_list_quat[i] < self.min_blend_duration:
-                                                self.duration_blend_list_quat[i] = self.min_blend_duration
-
-
-                                        self.ang_v0_list[i] = self.Segments[i-1].getAngularVelocity()
-                                        self.ang_v1_list[i] = self.Segments[i].getAngularVelocity()
-
-                                        max_angular_acc, max_angular_jerk = self.maxAccJerkCubic(self.ang_v0_list[i], self.ang_v1_list[i], np.array([0,0,0]), np.array([0,0,0]), self.duration_blend_list_quat[i]) 
-
-                                        if max_angular_jerk > self.ang_jerk_max:
-                                                self.duration_blend_list_quat[i] *= np.sqrt(max_angular_jerk/self.ang_jerk_max)
-
-                                                if self.duration_blend_list_quat[i] < self.min_blend_duration:
-                                                        self.duration_blend_list_quat[i] = self.min_blend_duration
-
-                                                self.ang_v0_list[i] = self.Segments[i-1].getAngularVelocity()
-                                                self.ang_v1_list[i] = self.Segments[i].getAngularVelocity()
-
-                
-                self.time_blend_start_cart.append(0)
-                self.time_blend_start_quat.append(0)
-                self.time_vector.append(0)
-
-                for i in range(0,self.num_segments):
-                        duration_sum = 0
-                        for j in range(i+1):
-                                duration_sum += self.Segments[j].duration
-                        self.time_vector.append(duration_sum)
-                        self.time_blend_start_cart.append(duration_sum - self.duration_blend_list_cart[i+1]*0.5)              
-                        self.time_blend_start_quat.append(duration_sum - self.duration_blend_list_quat[i+1]*0.5)
-                                
-                                
-                        
-        def generateTrajectoryParameters(self):    
-                
-                self.duration_blend_list_cart.append(0)
-                self.duration_blend_list_quat.append(0)
-                for i in range(0, self.num_segments-1):
-                        self.duration_blend_list_cart.append(self.min_blend_duration)
-                        self.duration_blend_list_quat.append(self.min_blend_duration)
-                self.duration_blend_list_cart.append(0)
-                self.duration_blend_list_quat.append(0)
-        
-        
-                for i in range(0, len(self.duration_blend_list_cart)):
-
-                        if self.duration_blend_list_cart[i] > 0:
-                                half_T_blend = self.duration_blend_list_cart[i]*0.5
-                                first_segment = self.Segments[i-1]
-                                second_segment = self.Segments[i]
-                                first_segment_duration = first_segment.duration
-
-
-                                self.p0_list.append(first_segment.getPosition(first_segment_duration - half_T_blend))
-                                self.p1_list.append(second_segment.getPosition(half_T_blend))
-
-                                self.ang_v0_list.append(first_segment.getAngularVelocity())
-                                self.ang_v1_list.append(second_segment.getAngularVelocity())
-
-                                self.v0_list.append(first_segment.getVelocity(first_segment_duration - half_T_blend))
-                                self.v1_list.append(second_segment.getVelocity(half_T_blend))
-
-                                self.a0_list.append(first_segment.getAcceleration(first_segment_duration - half_T_blend))
-                                self.a1_list.append(second_segment.getAcceleration(half_T_blend))
-                        else:
-                                self.p0_list.append(np.array([0,0,0]))
-                                self.p1_list.append(np.array([0,0,0]))
-
-                                self.ang_v0_list.append(np.array([0,0,0]))
-                                self.ang_v1_list.append(np.array([0,0,0]))
-
-                                self.v0_list.append(np.array([0,0,0]))
-                                self.v1_list.append(np.array([0,0,0]))
-                                self.a0_list.append(np.array([0,0,0]))
-                                self.a1_list.append(np.array([0,0,0]))
-
-                
-                cnt = 0               
-                blend_phase_overlap = True
-                blend_phase_overlap_quat = True
-                max_acc_limit_violated_quat = True
-                while (blend_phase_overlap or max_acc_limit_violated_cart or max_acc_limit_violated_quat) or cnt < 10:
-                        
-                        cnt += 1
-                        print("cnt: ", cnt)
-                        
-                        blend_phase_overlap = False
-                        for i in range(self.num_segments-1):
-
-                                if 0.5*(self.duration_blend_list_cart[i] + self.duration_blend_list_cart[i+1]) > self.Segments[i].duration or 0.5*(self.duration_blend_list_quat[i] + self.duration_blend_list_quat[i+1]) > self.Segments[i].duration:
-
-                                        self.Segments[i].duration *= 1.05  
-                                        
-                                        print("blendphases overlapped")
-                                        blend_phase_overlap = True
-
-                                        seg = self.Segments[i]
-                                        self.p1_list[i] = (seg.getPosition(self.duration_blend_list_cart[i]*0.5))
-                                        self.v1_list[i] = (seg.getVelocity(self.duration_blend_list_cart[i]*0.5))
-                                        self.a1_list[i] = (seg.getAcceleration(self.duration_blend_list_cart[i]*0.5))
-
-                                        self.p0_list[i+1] = (seg.getPosition(seg.duration - self.duration_blend_list_cart[i+1]*0.5))
-                                        self.v0_list[i+1] = (seg.getVelocity(seg.duration - self.duration_blend_list_cart[i+1]*0.5))
-                                        self.a0_list[i+1] = (seg.getAcceleration(seg.duration - self.duration_blend_list_cart[i+1]*0.5))
-
-                                        self.ang_v1_list[i] = (seg.getAngularVelocity())
-                                        self.ang_v0_list[i+1] = (seg.getAngularVelocity())
-
-
-
-                        max_acc_limit_violated_cart = False  
-                        max_acc_limit_violated_quat = False 
-                        for i in range(self.num_segments+1):
-                                
-                                if self.duration_blend_list_cart[i] > 0:
-                                        
-                                        max_acc, max_jerk = self.maxAccJerkQuintic(self.p0_list[i], self.p1_list[i], self.v0_list[i], self.v1_list[i], self.a0_list[i], self.a1_list[i], self.duration_blend_list_cart[i]) 
-
-                                        a_lim = max([self.a_max, np.linalg.norm(self.a0_list[i]), np.linalg.norm(self.a1_list[i])])
-                                        lamda_acc = max_acc/a_lim
-
-                                        if max_acc > a_lim*1.01:
-                                                print("acceleration limit for translational interpolation violated!")
-                                                max_acc_limit_violated_cart = True
-
-                                        self.duration_blend_list_cart[i] *= lamda_acc
-
-                                        if self.duration_blend_list_cart[i] < self.min_blend_duration:
-                                                self.duration_blend_list_cart[i] = self.min_blend_duration
-
-                                        seg1 = self.Segments[i-1]
-                                        seg2 = self.Segments[i]
-
-                                        half_T_blend = self.duration_blend_list_cart[i]*0.5
-
-                                        self.p0_list[i] = (seg1.getPosition(seg1.duration - half_T_blend))
-                                        self.p1_list[i] = (seg2.getPosition(half_T_blend))
-
-                                        self.v0_list[i] = (seg1.getVelocity(seg1.duration - half_T_blend))
-                                        self.v1_list[i] = (seg2.getVelocity(half_T_blend))
-
-                                        self.a0_list[i] = (seg1.getAcceleration(seg1.duration - half_T_blend))
-                                        self.a1_list[i] = (seg2.getAcceleration(half_T_blend))
-
-                                        max_acc, max_jerk = self.maxAccJerkQuintic(self.p0_list[i], self.p1_list[i], self.v0_list[i], self.v1_list[i], self.a0_list[i], self.a1_list[i], self.duration_blend_list_cart[i]) 
-
-                                        if max_jerk > self.j_max:
-                                                self.duration_blend_list_cart[i] *= np.sqrt(max_jerk/self.j_max)
-
-                                                if self.duration_blend_list_cart[i] < self.min_blend_duration:
-                                                        self.duration_blend_list_cart[i] = self.min_blend_duration
-
-                                                half_T_blend = self.duration_blend_list_cart[i]*0.5
-
-                                                self.p0_list[i] = (seg1.getPosition(seg1.duration - half_T_blend))
-                                                self.p1_list[i] = (seg2.getPosition(half_T_blend))
-
-                                                self.v0_list[i] = (seg1.getVelocity(seg1.duration - half_T_blend))
-                                                self.v1_list[i] = (seg2.getVelocity(half_T_blend))
-
-                                                self.a0_list[i] = (seg1.getAcceleration(seg1.duration - half_T_blend))
-                                                self.a1_list[i] = (seg2.getAcceleration(half_T_blend))
-
-
-                                if self.duration_blend_list_quat[i] > 0:
-
-                                        max_angular_acc, max_angular_jerk = self.maxAccJerkCubic(self.ang_v0_list[i], self.ang_v1_list[i], np.array([0,0,0]), np.array([0,0,0]), self.duration_blend_list_quat[i]) 
-
-                                        lamda_acc = max_angular_acc/self.ang_acc_max
-
-                               
-                                        if max_angular_acc > self.ang_acc_max*1.01:
-                                                print("acceleration limit for orientation interpolation violated!")
-                                                max_acc_limit_violated_quat = True
-
-                                        self.duration_blend_list_quat[i] *= lamda_acc
-
-                                        if self.duration_blend_list_quat[i] < self.min_blend_duration:
-                                                self.duration_blend_list_quat[i] = self.min_blend_duration
-
-
-                                        self.ang_v0_list[i] = self.Segments[i-1].getAngularVelocity()
-                                        self.ang_v1_list[i] = self.Segments[i].getAngularVelocity()
-
-                                        max_angular_acc, max_angular_jerk = self.maxAccJerkCubic(self.ang_v0_list[i], self.ang_v1_list[i], np.array([0,0,0]), np.array([0,0,0]), self.duration_blend_list_quat[i]) 
-
-                                        if max_angular_jerk > self.ang_jerk_max:
-                                                self.duration_blend_list_quat[i] *= np.sqrt(max_angular_jerk/self.ang_jerk_max)
-
-                                                if self.duration_blend_list_quat[i] < self.min_blend_duration:
-                                                        self.duration_blend_list_quat[i] = self.min_blend_duration
-
-                                                self.ang_v0_list[i] = self.Segments[i-1].getAngularVelocity()
-                                                self.ang_v1_list[i] = self.Segments[i].getAngularVelocity()
-
-                
-                self.time_blend_start_cart.append(0)
-                self.time_blend_start_quat.append(0)
-                self.time_vector.append(0)
-
-                for i in range(0,self.num_segments):
-                        duration_sum = 0
-                        for j in range(i+1):
-                                duration_sum += self.Segments[j].duration
-                        self.time_vector.append(duration_sum)
-                        self.time_blend_start_cart.append(duration_sum - self.duration_blend_list_cart[i+1]*0.5)              
-                        self.time_blend_start_quat.append(duration_sum - self.duration_blend_list_quat[i+1]*0.5)      
-
-
-        
         
         def determineSegmentType(self, t, time_blend_start, T_blend_list):
                 # first find in which area we are
@@ -489,128 +403,10 @@ class DQQBTrajectoryGenerator:
                         cnt = 0
                 
                 if t >= time_blend_start[-1]:
-                        cnt =  len(time_blend_start)-2
+                        return "blend", len(time_blend_start)-1
 
-                if t > time_blend_start[cnt] and t <= time_blend_start[cnt] + T_blend_list[cnt]:
+                if t >= time_blend_start[cnt] and t <= time_blend_start[cnt] + T_blend_list[cnt]:
                         return "blend", cnt
 
                 else:
                         return "lin", cnt
-                
-        
-        
-        def evaluate(self, t):
-                seg_cart, cnt_cart = self.determineSegmentType(t, self.time_blend_start_cart, self.duration_blend_list_cart)
-                seg_quat, cnt_quat = self.determineSegmentType(t, self.time_blend_start_quat, self.duration_blend_list_quat)
-        
-                if seg_cart == "blend":
-                        dt = t - self.time_blend_start_cart[cnt_cart]
-                        pos, vel, acc, jerk = self.quinticPolynomial(self.p0_list[cnt_cart], self.p1_list[cnt_cart], self.v0_list[cnt_cart], self.v1_list[cnt_cart], self.a0_list[cnt_cart], self.a1_list[cnt_cart], dt, self.duration_blend_list_cart[cnt_cart])
-
-                if seg_cart == "lin":
-                        dt = t - self.time_blend_start_cart[cnt_cart] - 0.5*self.duration_blend_list_cart[cnt_cart]
-                        jerk = np.array([0,0,0])
-                        acc = self.Segments[cnt_cart].getAcceleration(dt)
-                        vel = self.Segments[cnt_cart].getVelocity(dt)
-                        pos = self.Segments[cnt_cart].getPosition(dt)
-            
-                if seg_quat == "blend":
-                        dt = t - self.time_blend_start_quat[cnt_quat]
-                        log, angular_velocity, angular_acceleration, angular_jerk = self.cubicPolynomial(self.ang_v0_list[cnt_quat], self.ang_v1_list[cnt_quat], np.array([0,0,0]), np.array([0,0,0]), dt, self.duration_blend_list_quat[cnt_quat])
-
-                        log -= self.ang_v0_list[cnt_quat]*0.5*self.duration_blend_list_quat[cnt_quat]
-
-                        quaternion = Quaternion.exp(Quaternion(0,log[0], log[1], log[2])*0.5)*self.Segments[cnt_quat].q1
-
-                if seg_quat == "lin":
-                        dt = t - self.time_blend_start_quat[cnt_quat] - 0.5*self.duration_blend_list_quat[cnt_quat]
-                        angular_jerk = np.array([0,0,0])
-                        angular_acceleration = np.array([0,0,0])
-                        angular_velocity = self.Segments[cnt_quat].getAngularVelocity()
-
-                        log = angular_velocity*dt
-
-                        quaternion = Quaternion.exp(Quaternion(0, log[0], log[1], log[2])*0.5)*self.Segments[cnt_quat].q1
-
-        
-                return pos, vel, acc, jerk, quaternion, angular_velocity, angular_acceleration, angular_jerk
-        
-
-        def evaluateDQ(self, t):
-                seg_cart, cnt_cart = self.determineSegmentType(t, self.time_blend_start_cart, self.duration_blend_list_cart)
-                seg_quat, cnt_quat = self.determineSegmentType(t, self.time_blend_start_quat, self.duration_blend_list_quat)
-        
-                if seg_cart == "blend":
-                        dt = t - self.time_blend_start_cart[cnt_cart]
-                        pos, vel, acc, jerk = self.quinticPolynomial(self.p0_list[cnt_cart], self.p1_list[cnt_cart], self.v0_list[cnt_cart], self.v1_list[cnt_cart], self.a0_list[cnt_cart], self.a1_list[cnt_cart], dt, self.duration_blend_list_cart[cnt_cart])
-
-                if seg_cart == "lin":
-                        dt = t - self.time_blend_start_cart[cnt_cart] - 0.5*self.duration_blend_list_cart[cnt_cart]
-                        jerk = np.array([0,0,0])
-                        acc = self.Segments[cnt_cart].getAcceleration(dt)
-                        vel = self.Segments[cnt_cart].getVelocity(dt)
-                        pos = self.Segments[cnt_cart].getPosition(dt)
-            
-                if seg_quat == "blend":
-                        dt = t - self.time_blend_start_quat[cnt_quat]
-                        log, angular_velocity, angular_acceleration, angular_jerk = self.cubicPolynomial(self.ang_v0_list[cnt_quat], self.ang_v1_list[cnt_quat], np.array([0,0,0]), np.array([0,0,0]), dt, self.duration_blend_list_quat[cnt_quat])
-
-                        log -= self.ang_v0_list[cnt_quat]*0.5*self.duration_blend_list_quat[cnt_quat]
-
-                        quaternion = Quaternion.exp(Quaternion(0,log[0], log[1], log[2])*0.5)*self.Segments[cnt_quat].q1
-
-                if seg_quat == "lin":
-                        dt = t - self.time_blend_start_quat[cnt_quat] - 0.5*self.duration_blend_list_quat[cnt_quat]
-                        angular_jerk = np.array([0,0,0])
-                        angular_acceleration = np.array([0,0,0])
-                        angular_velocity = self.Segments[cnt_quat].getAngularVelocity()
-
-                        log = angular_velocity*dt
-
-                        quaternion = Quaternion.exp(Quaternion(0, log[0], log[1], log[2])*0.5)*self.Segments[cnt_quat].q1
-                
-                # construct pure quaternions from the computed accelerations and velocities
-                w = Quaternion(0, *angular_velocity)
-                w_dot = Quaternion(0, *angular_acceleration)
-                
-                t = Quaternion(0, *pos)
-                v = Quaternion(0, *vel)
-                a = Quaternion(0, *acc)
-                
-                # compute and return the respective dual quaternions
-                dq = DualQuaternion.fromQuatPos(quaternion, pos)
-               
-                dq_dot = DualQuaternion(0.5*(w*dq.real), 0.5*(v + 0.5*t*w)*dq.real)
-                
-                dq_ddot = DualQuaternion(0.5*(w_dot + 0.5*w*w)*dq.real, 0.5*((a + 0.5*(v*w + t*w_dot)) + 0.5*(v + 0.5*t*w)*w)*dq.real)
-
-                return dq, dq_dot, dq_ddot
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    

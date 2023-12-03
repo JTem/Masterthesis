@@ -16,11 +16,8 @@ class MoveTrajectory:
                 
                 self.q = np.zeros(7)
                 self.forward_kinematics = ForwardKinematics()
-                Tj, Ta, Tv, T = self.interpolator.calculateTotalTime(0, self.trajectory.time_vector[-1], 1, 20, 1000)
-                self.alpha = Ta/T
-                self.beta = Tj/Ta
         
-                self.total_Time = T
+                self.total_Time = self.trajectory.time_vector[-1]
                 self.time = 0
                 self.done = False
 
@@ -36,12 +33,11 @@ class MoveTrajectory:
         def run(self, dt):
                 if self.time < self.total_Time:
                         self.time += dt
+                        self.DQd, self.DQd_dot, self.Qd_ddot = self.trajectory.evaluateDQ(self.time)
+
+                        #self.current_velocity = self.diffkin.differential_kinematics_DQ(self.current_position, self.current_velocity, self.DQd, self.DQd_dot)       
+                        self.current_velocity = self.diffkin.quadratic_program_2(self.current_position, self.current_velocity, self.DQd, self.DQd_dot)
                         
-                        s, _, _ = self.interpolator.timeScaling_S_single(0, self.trajectory.time_vector[-1], self.total_Time, self.alpha, self.beta, self.time)
-                        self.DQd, self.DQd_dot, self.Qd_ddot = self.trajectory.evaluateDQ(s)
-
-                        self.current_velocity = self.diffkin.differential_kinematics_DQ(self.current_position, self.current_velocity, self.DQd, self.DQd_dot)       
-
                         self.current_position = self.current_position + self.current_velocity*dt
                         self.current_cartesian_position = self.DQd
                 else:

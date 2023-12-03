@@ -44,7 +44,7 @@ class Line:
                 return self.rotation_axis*self.theta/self.duration
 
         def getVelocity(self, time):
-                return self.tangent*self.dist /self.duration
+                return self.tangent*self.dist/self.duration
     
         def getAcceleration(self, time):
                 return np.array([0,0,0])
