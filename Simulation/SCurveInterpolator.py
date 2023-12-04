@@ -1,7 +1,7 @@
 import math
 import numpy as np
 
-class Interpolators:
+class SCurveInterpolator:
         def __init__(self):
                 self.name = "interpolator"
         
@@ -40,7 +40,7 @@ class Interpolators:
                 return Tj, Ta, Tv, T
         
         
-        def timeScaling_S_single(self, q0_, q1_, T, alpha, beta, t):
+        def evaluate(self, q0_, q1_, T, alpha, beta, t):
                 sigma = math.copysign(1, q1_ - q0_)
 
                 if sigma == 0.0:

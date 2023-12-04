@@ -1,6 +1,7 @@
 import numpy as np
 from Simulation.ForwardKinematics import ForwardKinematics
 from neura_dual_quaternions import DualQuaternion
+
 class CommandExecutor:
         
         def __init__(self, task_list, init_position, num_loops, dof):
@@ -50,7 +51,7 @@ class CommandExecutor:
 
                 self.updatePosition()
                 self.updateVelocity()
-                self.updateAcceleration()
+                #self.updateAcceleration()
                 self.updateCartesianTarget()
         
         def updatePosition(self):
