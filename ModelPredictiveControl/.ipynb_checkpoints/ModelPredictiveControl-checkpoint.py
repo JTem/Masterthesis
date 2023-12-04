@@ -5,7 +5,7 @@ import scipy.sparse as sp
 import scipy
 
 class ModelPredictiveControl:
-        def __init__(self, x0, u0, N, Nu, dof):
+        def __init__(self, N, Nu, dof):
                 
                 self.N = N
                 self.Nu = Nu
@@ -57,7 +57,7 @@ class ModelPredictiveControl:
                 return lower_constraint_vector, upper_constraint_vector
         
         
-        def updateConstraintVector(self, lower_constraint_vector, upper_constraint_vector, Ts, x0, u0, ref_list):
+        def updateConstraintVector(self, lower_constraint_vector, upper_constraint_vector, x0, u0, ref_list):
                 
                 offset_ref = self.dof*self.N
                 offset_u = self.dof*self.N + self.Nu*self.dim_jac
@@ -90,37 +90,37 @@ class ModelPredictiveControl:
                 return A_constraint
         
         
-        def updateConstraintMatrix2(self, csc_A_constraint, J_list):
+#         def updateConstraintMatrix2(self, csc_A_constraint, J_list):
                 
-                # Jacobian and slack
-                offset_jac = self.dof*self.N
+#                 # Jacobian and slack
+#                 offset_jac = self.dof*self.N
                 
-                for i in range(0, self.Nu):
-                        J = J_list[i]
-                        for j in range(0, self.dim_jac):
-                                for k in range(0, self.dof):
-                                        csc_A_constraint[(offset_jac + self.dim_jac*i + j), (offset_jac + self.dof*i + k)] = J[j, k]
+#                 for i in range(0, self.Nu):
+#                         J = J_list[i]
+#                         for j in range(0, self.dim_jac):
+#                                 for k in range(0, self.dof):
+#                                         csc_A_constraint[(offset_jac + self.dim_jac*i + j), (offset_jac + self.dof*i + k)] = J[j, k]
                 
-                return csc_A_constraint
+#                 return csc_A_constraint
         
         
-        def updateConstraintMatrix3(self, csc_A_constraint, J_list):
+#         def updateConstraintMatrix3(self, csc_A_constraint, J_list):
                 
-                # Jacobian and slack
-                offset_jac = self.dof*self.N
+#                 # Jacobian and slack
+#                 offset_jac = self.dof*self.N
                 
-                coo = csc_A_constraint.tocoo()
+#                 coo = csc_A_constraint.tocoo()
                 
-                for i in range(0, self.Nu):
-                        J = sp.coo_matrix(J_list[i])
-                        # Update the block
-                        for j, k, v in zip(J.row, J.col, J.data):
-                                coo.data[(coo.row == offset_jac + self.dim_jac*i + j) & (coo.col == offset_jac + self.dim_jac*i + k)] = v
+#                 for i in range(0, self.Nu):
+#                         J = sp.coo_matrix(J_list[i])
+#                         # Update the block
+#                         for j, k, v in zip(J.row, J.col, J.data):
+#                                 coo.data[(coo.row == offset_jac + self.dim_jac*i + j) & (coo.col == offset_jac + self.dim_jac*i + k)] = v
 
-                # Convert back to CSC format
-                updated_csc_matrix = coo.tocsc()
+#                 # Convert back to CSC format
+#                 updated_csc_matrix = coo.tocsc()
                 
-                return csc_A_constraint
+#                 return csc_A_constraint
         
         
         def initializeConstraintMatrix(self, A, B, J_list, Ts_list):

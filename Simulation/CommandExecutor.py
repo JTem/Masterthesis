@@ -50,7 +50,7 @@ class CommandExecutor:
 
                 self.updatePosition()
                 self.updateVelocity()
-                self.updateAcceleration()
+                #self.updateAcceleration()
                 self.updateCartesianTarget()
         
         def updatePosition(self):

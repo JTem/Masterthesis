@@ -5,7 +5,7 @@ import scipy.sparse as sp
 import scipy
 
 class ModelPredictiveControl:
-        def __init__(self, x0, u0, N, Nu, dof):
+        def __init__(self, N, Nu, dof):
                 
                 self.N = N
                 self.Nu = Nu
@@ -57,7 +57,7 @@ class ModelPredictiveControl:
                 return lower_constraint_vector, upper_constraint_vector
         
         
-        def updateConstraintVector(self, lower_constraint_vector, upper_constraint_vector, Ts, x0, u0, ref_list):
+        def updateConstraintVector(self, lower_constraint_vector, upper_constraint_vector, x0, u0, ref_list):
                 
                 offset_ref = self.dof*self.N
                 offset_u = self.dof*self.N + self.Nu*self.dim_jac

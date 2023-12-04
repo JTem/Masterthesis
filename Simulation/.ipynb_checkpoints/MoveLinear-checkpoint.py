@@ -3,6 +3,7 @@ import time
 from Simulation.LinearInterpolator import LinearInterpolator
 from Simulation.ForwardKinematics import ForwardKinematics
 from Simulation.DifferentialKinematics import DifferentialKinematics
+from Simulation.MPC_DifferentialKinematics import MPC_DifferentialKinematics
 from neura_dual_quaternions import Quaternion, DualQuaternion
 
 
@@ -25,7 +26,7 @@ class MoveLinear:
                 self.current_velocity = np.zeros(7)
                 self.current_acceleration = np.zeros(7)
                 self.current_cartesian_position = DualQuaternion.basicConstructor(1,0,0,0, 0,0,0,0)
-                #self.interpolator = Interpolators()
+
         
         def run(self, dt):
                 if self.time < self.total_Time:
@@ -45,13 +46,6 @@ class MoveLinear:
                         self.done = True
     
     
-#         def interpolateDualQuaternion(self, x0, x1, total_Time, time):
-#                 s, s_dot, s_ddot = self.interpolator.timeScaling_S_single(0, 1, total_Time, 0.4, 0.3, time)
-#                 Qd = DualQuaternion.sclerp(x0, x1, s)
-#                 Qd_dot = DualQuaternion.sclerp_dot(x0, x1, s, s_dot)
-
-#                 return Qd, Qd_dot
-    
         def reset(self):
                 self.time = 0
                 self.done = False
@@ -66,6 +60,7 @@ class MoveLinear:
                 return self.current_acceleration
 
         def setStartPosition(self, position):
+                print("THIS IS TRIGGERED")
                 self.current_position = position
 
         def setStartCartPosition(self, x):

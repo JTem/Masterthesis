@@ -60,6 +60,7 @@ class MoveTrajectory:
                 return self.current_acceleration
 
         def setStartPosition(self, position):
+                print("THIS IS TRIGGERED")
                 self.current_position = position
 
         def setStartCartPosition(self, T):
