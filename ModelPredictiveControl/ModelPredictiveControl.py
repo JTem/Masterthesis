@@ -30,6 +30,11 @@ class ModelPredictiveControl:
 
                 return sp.csc_matrix(hessian)
         
+        def initializeGradient(self):
+                gradient_dim = self.dof*(self.N + 2*self.Nu) + self.Nu*self.dim_jac
+
+                return np.zeros(gradient_dim)
+        
         def initializeConstraintVectors(self, Ts, x0, A, u0, joint_limits, velocity_limits, acceleration_limits):
                 self.Ad0 = self.computeAd(A, Ts)
                 dim_eqconstraint_vec = self.dof*(self.N + self.Nu) + self.Nu*self.dim_jac 
@@ -66,6 +71,8 @@ class ModelPredictiveControl:
                 
                 constraintVector = np.zeros(dim_constraint_vec)
                 
+                #print(lower_constraint_vector)
+                #print(ref_list)
                 for i in range(0, self.Nu):
                         lower_constraint_vector[(offset_ref + self.dim_jac*i):(offset_ref + self.dim_jac*i) + self.dim_jac] = ref_list[i]   
                         upper_constraint_vector[(offset_ref + self.dim_jac*i):(offset_ref + self.dim_jac*i) + self.dim_jac] = ref_list[i]
@@ -123,7 +130,7 @@ class ModelPredictiveControl:
 #                 return csc_A_constraint
         
         
-        def initializeConstraintMatrix(self, A, B, J_list, Ts_list):
+        def initializeConstraintMatrix(self, A, B, Ts_list):
                 
                 EQ_dim1 = self.N*self.dof + self.Nu*(self.dim_jac + self.dof)
                 matrix_dim2 = self.dof*(self.N + 2*self.Nu) + self.Nu*self.dim_jac

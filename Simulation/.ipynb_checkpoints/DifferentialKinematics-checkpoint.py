@@ -13,9 +13,63 @@ class DifferentialKinematics:
                     'alpha': 1.0,
                     'verbose': False,
                     'max_iter': 1000,
-                    'eps_abs': 1e-4
+                    'eps_abs': 1e-3
                 }
-
+        
+        def manipulability(self, q):
+                J = self.forward_kinematics.jacobian_body(q)
+                
+                return np.sqrt(max(0, np.linalg.det(J@J.T)))
+        
+        def manipulability_gradient(self, q):
+                
+                w0 = self.manipulability(q)
+                h = 0.00001
+                grad = []
+                for i in range(7):
+                        dq = np.zeros(7)
+                        dq[i] = h
+                        grad.append((self.manipulability(q+dq) -w0)/h)
+                        
+                return np.array(grad)
+        
+        def dir_manipulability_gradient2(self, q):
+                
+                J = self.forward_kinematics.jacobian_body(q)
+                H = self.forward_kinematics.hessian(q)
+                W = np.diag(np.array([0,0,0,0,0,0]))
+                
+                #manipulability =  np.sqrt(max(0, np.linalg.det(J@J.T)))
+                b = np.linalg.inv(J@J.T + np.eye(6)*0.05)
+                Jm = np.zeros(7)
+                for i in range(7):
+                        c = W@J@H[:,:,i].T
+                        Jm[i] = (c.flatten("F").T)@b.flatten("F")
+                        
+                return Jm
+        
+        def dir_manipulability(self, q, v):
+                Jb = self.forward_kinematics.jacobian_body(q)
+                U, S, V = np.linalg.svd(Jb@Jb.T)
+                
+                sum_w = 0
+                for i in range(6):
+                        sum_w += abs(S[i]*(np.dot(v, U[:,i])))
+                        
+                return sum_w
+        
+        def dir_manipulability_gradient(self, q, v):
+                
+                w0 = self.dir_manipulability(q, v)
+                h = 0.0001
+                grad = []
+                for i in range(7):
+                        dq = np.zeros(7)
+                        dq[i] = h
+                        grad.append((self.dir_manipulability(q+dq, v) - w0)/h)
+                
+                return np.array(grad)
+        
         
         def differential_kinematics(self, q, q_dot, DQd, DQd_dot):
                 x = self.forward_kinematics.forward_kinematics(q)
@@ -32,8 +86,11 @@ class DifferentialKinematics:
                 
                 kp = 20
                 vel = x_dot.flatten() + kp*error
-                q_dot_ = np.linalg.pinv(J)@vel.flatten()
-
+                pinv = np.linalg.pinv(J)
+                self.gradient = self.dir_manipulability_gradient2(q)
+                q_dot_ = pinv@vel.flatten() + 5.0*(np.eye(7)-pinv@J)@self.gradient
+                
+                #print(self.manipulability_gradient(q))
                 return q_dot_.flatten()
         
     
@@ -138,12 +195,18 @@ class DifferentialKinematics:
                 
                 J_H = 0.5*DQd.as_mat_right()@J
                 #J_H_reg = J_H + 0.0001 * np.eye(J_H.shape[0])
-                kp = 20.0
+                kp = 50.0
 
                 # Define OSQP data
-                P = sp.csc_matrix(np.eye(7))   # Quadratic term
-                q = np.zeros(7)                # Linear term
-
+                P = sp.csc_matrix(np.eye(7))  # Quadratic term
+                
+                x_dot6 = np.array([1,0,0,0,0,0])
+                self.gradient = self.dir_manipulability_gradient2(q)  # Linear term
+                #print("info:")
+                #print("q; ", q)
+                #print("gradient; ", self.gradient)
+                #print("µ; ", self.manipulability(q) )
+                #print("q; ", q)
                 # Define constraint matrix and bounds
                 A = sp.csc_matrix(J_H)
                 l = (DQd_dot.asVector() + kp*error).flatten()
@@ -153,7 +216,7 @@ class DifferentialKinematics:
                 prob = osqp.OSQP()
 
                 # Setup workspace and change settings
-                prob.setup(P, q, A, l, u, **self.osqp_settings)
+                prob.setup(P, -6*self.gradient, A, l, u, **self.osqp_settings)
 
                 # Solve problem
                 res = prob.solve()
@@ -161,7 +224,7 @@ class DifferentialKinematics:
                 
                 if res.info.status != 'solved':
                         print("The problem is ", res.info.status )                        
-                        return self.q_dot_last_
+         
               
                 # The problem was feasible (or possibly optimal)
                 q_dot_ = res.x
@@ -181,11 +244,18 @@ class DifferentialKinematics:
                 J_H = 0.5*DQd.as_mat_right()@J
 
                 kp = 50.0
+                
+                Omega = DQd_dot*DQd.inverse()*2.0
+                v = Omega.as6Vector().flatten()
 
+                
                 # Define OSQP data
-                P = sp.block_diag((0.001*np.eye(7), 100000*np.eye(4)))  # Quadratic term
-                q = np.zeros(11)                # Linear term
-
+                P = sp.block_diag((1*np.eye(7), 100_000*np.eye(4)))  # Quadratic term
+                x_dot6 = np.array([1,1,1,0,0,0])*0.3
+                self.gradient = self.dir_manipulability_gradient2(q) 
+                grad = np.hstack([-2*self.gradient, np.zeros(4)])           # Linear term
+                #print(q)
+                
                 # Define constraint matrix and bounds
                 slack_matrix = np.array([[1,0,0,0],
                                          [0,1,0,0],
@@ -214,7 +284,7 @@ class DifferentialKinematics:
                 prob = osqp.OSQP()
 
                 # Setup workspace and change settings
-                prob.setup(P, q, A, l, u, **self.osqp_settings)
+                prob.setup(P, grad, A, l, u, **self.osqp_settings)
 
                 # Solve problem
                 res = prob.solve()

@@ -48,7 +48,19 @@ class ForwardKinematics:
                         J[:, i] = s_i.asVector().flatten()
 
                 return J
-            
+
+        def jacobian_body(self, theta):
+                x = self.forward_kinematics(theta)
+                
+                J = self.jacobian(theta)
+                
+                Jb = x.inverse().as_mat_left()@x.as_mat_right()@J
+                
+                #print(Jb)
+                
+
+                return np.vstack([Jb[1:4], Jb[5:8]])
+        
         def jacobian6(self, theta):
                 x = DualQuaternion.basicConstructor(1,0,0,0, 0,0,0,0)
                 J = np.zeros((6, len(theta)))
@@ -144,8 +156,8 @@ class ForwardKinematics:
         import numpy as np
 
         def hessian(self, theta):
-                h = 0.0001
-                j = self.jacobian6(theta)
+                h = 0.000001
+                j = self.jacobian_body(theta)
 
                 # Assuming jacobian() returns a numpy array
                 n = j.shape[1]  # Number of joints
@@ -156,7 +168,7 @@ class ForwardKinematics:
                 for i in range(n):
                         theta_temp = theta.copy()
                         theta_temp[i] += h
-                        j_temp = self.jacobian6(theta_temp)
+                        j_temp = self.jacobian_body(theta_temp)
                         H[:, :, i] = (j_temp - j) / h
 
                 # Multiply the Hessian tensor with theta_dot
@@ -166,3 +178,24 @@ class ForwardKinematics:
 
 
     
+        def hessian0(self, theta):
+                
+                def cross(a, b):
+                        x = a[1] * b[2] - a[2] * b[1]
+                        y = a[2] * b[0] - a[0] * b[2]
+                        z = a[0] * b[1] - a[1] * b[0]
+                        return np.array([x, y, z])
+                
+                n = 7
+                J = self.jacobian6(theta)
+                
+                H = np.zeros((n, 6, n))
+                for j in range(n):
+                        for i in range(j, n):
+                                H[j, :3, i] = cross(J[3:, j], J[:3, i])
+                                H[j, 3:, i] = cross(J[3:, j], J[3:, i])
+
+                                if i != j:
+                                        H[i, :3, j] = H[j, :3, i]
+
+                return H

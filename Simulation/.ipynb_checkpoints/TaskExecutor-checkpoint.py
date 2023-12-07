@@ -1,6 +1,8 @@
 import numpy as np
 from Simulation.ForwardKinematics import ForwardKinematics
 from Simulation.DifferentialKinematics import DifferentialKinematics
+from Simulation.MPC_DifferentialKinematics import MPC_DifferentialKinematics
+from Simulation.QP_DifferentialKinematics import QP_DifferentialKinematics
 from neura_dual_quaternions import DualQuaternion
 
 class TaskExecutor:
@@ -11,8 +13,34 @@ class TaskExecutor:
                 self.time = 0
                 self.done = False
                 
+                self.res = None
+                
                 self.forward_kinematics = ForwardKinematics()
                 self.differential_kinematics = DifferentialKinematics()
+                self.qp_differential_kinematics = QP_DifferentialKinematics()
+                
+                self.error_norm = []
+                self.q_dot_list = []
+                
+                self.use_mpc = False
+                        
+                self.N = 10
+                self.Nu = 10
+                self.dof = 7
+                Ts0 = 0.002
+                Ts_lin_fact = 2
+                Ts_quat_fact = 2
+                weight_x = 2
+                weight_u = 2
+                weight_s = 10_000_000
+                weight_du = 0.0000001
+                
+                joint_limit = 3.14*np.ones(self.dof)
+                velocity_limit = 3.14*np.ones(self.dof)
+                acceleration_limit = 100*np.ones(self.dof)
+                
+                self.mpc = MPC_DifferentialKinematics(self.N, self.Nu, self.dof, Ts0, Ts_lin_fact, Ts_quat_fact, weight_x, weight_u, weight_s, weight_du, joint_limit, velocity_limit, acceleration_limit)
+                
                 
                 # make sure we can predict the future state, set initial dual quaternion transformation of each task
                 for i in range(0, len(self.task_list)):
@@ -85,7 +113,7 @@ class TaskExecutor:
                 return cnt
         
         
-        def predictCartTasks(self, cnt0, time_predict):
+        def predictCartTasks(self, time_predict):
                 
                 cnt = self.getTaskCounter(time_predict)
                 
@@ -106,8 +134,9 @@ class TaskExecutor:
                 cnt = self.getTaskCounter(self.time)
                 task = self.task_list[cnt]
                 
-                       
+                #print(self.mpc.is_seeded)
                 if task.type == "joint":
+                        self.mpc.is_seeded = False
                         if not task.q0_set:
                                 task.q0_set = True
                                 task.q0 = self.q
@@ -115,10 +144,96 @@ class TaskExecutor:
                         self.x_des = self.forward_kinematics.forward_kinematics(self.q)
                         
                 else:
-                        self.x_des, self.x_des_dot = task.evaluate(self.time - self.time_vector[cnt])
-                        self.x_predict, _ = self.predictCartTasks(cnt, self.time + 0.1)
-                        self.x_predict2, _ = self.predictCartTasks(cnt, self.time + 0.2)
-                        self.q_dot = self.differential_kinematics.quadratic_program_2(self.q, self.q_dot, self.x_des, self.x_des_dot)
+                        #self.x_des, self.x_des_dot = task.evaluate(self.time - self.time_vector[cnt])
+                        
+                        #self.x_predict, _ = self.predictCartTasks(self.time + 0.5)
+                        #self.x_predict2, _ = self.predictCartTasks(self.time + 1)
+                        
+                        #self.q_dot = self.differential_kinematics.quadratic_program_2(self.q, self.q_dot, self.x_des, self.x_des_dot)
+                        
+                        if self.use_mpc and not self.mpc.is_seeded:
+                                
+                                x = self.forward_kinematics.forward_kinematics(self.q)
+                                J = self.forward_kinematics.jacobian(self.q)
+                                J_H = 0.5*x.as_mat_right()@J
+                                
+                                ref_list = []
+                                for i in range(self.mpc.Nu):
+                                        _, x_dot = self.predictCartTasks(self.time + self.mpc.dt_vector[i])
+                                        ref_list.append(x_dot.asVector().flatten())
+                                
+                                print(ref_list)
+                                self.res = self.mpc.seed(self.q, self.q_dot, J_H, ref_list)
+                                print(self.res)
+                        
+                        if self.use_mpc:
+                                
+                                if not self.mpc.is_seeded:
+                                        x = self.forward_kinematics.forward_kinematics(self.q)
+                                        J = self.forward_kinematics.jacobian(self.q)
+                                        J_H = 0.5*x.as_mat_right()@J
+
+                                        ref_list = []
+                                        for i in range(self.mpc.Nu):
+                                                _, x_dot = self.predictCartTasks(self.time + self.mpc.dt_vector[i])
+                                                ref_list.append(x_dot.asVector().flatten())
+
+                                        #print(ref_list)
+                                        self.res = self.mpc.seed(self.q, self.q_dot, J_H, ref_list)
+                                        #print(self.res)
+                                
+                                x = self.forward_kinematics.forward_kinematics(self.q)
+                                J = self.forward_kinematics.jacobian(self.q)
+                                J_H = 0.5*x.as_mat_right()@J
+                                
+                                J_list = []
+                                for i in range(self.Nu):
+                                        # q_pred = self.res[self.dof*i:self.dof*i + self.dof]
+                                        # x = self.forward_kinematics.forward_kinematics(q_pred)
+                                        # J = self.forward_kinematics.jacobian(q_pred)
+                                        # J_H = 0.5*x.as_mat_right()@J
+                                        J_list.append(J_H)
+                                        
+                                ref_list = []
+                                for i in range(self.mpc.Nu):
+                                        _, x_dot = self.predictCartTasks(self.time + self.mpc.dt_vector[i])
+                                        ref_list.append(x_dot.asVector().flatten())
+                                
+                                self.x_des, _ = task.evaluate(self.time - self.time_vector[cnt])
+                                x_real = self.forward_kinematics.forward_kinematics(self.q)
+                                #print(ref_list)
+                                #print(ref_list[0] + (self.x_des - x_real).asVector().flatten())
+                                
+                                error = (self.x_des - x_real).asVector().flatten()
+                                ref_list[0] = ref_list[0]  + 2.0 * error
+                                
+                                self.error_norm.append(np.linalg.norm(error))
+                                
+                     
+                                self.res = self.mpc.update(self.q, self.q_dot, J_list, ref_list)
+                                self.q_dot = self.res[self.N*self.dof:self.N*self.dof + self.dof]
+                                
+                                self.q_dot_list.append(self.q_dot)
+                          
+                        
+                        else:
+                                self.x_des, self.x_des_dot = task.evaluate(self.time - self.time_vector[cnt])
+                        
+                                #self.x_predict, _ = self.predictCartTasks(self.time + 0.5)
+                                #self.x_predict2, _ = self.predictCartTasks(self.time + 1)
+                                
+                                self.x_des, _ = task.evaluate(self.time - self.time_vector[cnt])
+                                x_real = self.forward_kinematics.forward_kinematics(self.q)
+                                
+                                error = (self.x_des - x_real).asVector().flatten()
+                                self.error_norm.append(np.linalg.norm(error))
+                                
+                                xd_pred, xd_dot_pred = self.predictCartTasks(self.time + 0.5)
+                                
+                                #self.q_dot = self.differential_kinematics.quadratic_program_1(self.q, self.q_dot, self.x_des, self.x_des_dot)
+                                self.q_dot = self.qp_differential_kinematics.quadratic_program(self.q, self.q_dot, self.x_des, self.x_des_dot)
+                                #self.q_dot_list.append(self.differential_kinematics.gradient)
+                                       
                         self.q += self.q_dot*dt
                 
                 

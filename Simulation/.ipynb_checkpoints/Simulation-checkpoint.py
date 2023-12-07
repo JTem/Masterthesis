@@ -3,7 +3,6 @@ import time
 from Simulation.WaitTime import WaitTime
 from Simulation.MoveJoint import MoveJoint
 from Simulation.MoveLinear import MoveLinear
-from Simulation.CommandExecutor import CommandExecutor
 from Simulation.TaskExecutor import TaskExecutor
 from Simulation.ForwardKinematics import ForwardKinematics
 
@@ -29,7 +28,7 @@ class Simulation:
                 s = 0
 
                 env = Swift()
-                env.launch(realtime=False)
+                env.launch(realtime=True)
 
                 # Make a panda model and set its joint angles to the ready joint configuration
                 maira = rtb.models.URDF.Maira7M()
@@ -42,8 +41,8 @@ class Simulation:
                 T_pred2 = sg.Axes(length = 0.18, pose = DualQuaternion.basicConstructor(1,0,0,0, 0,0,0,0).asTransformation())    
                 
                 env.add(Tee)
-                env.add(T_pred)
-                env.add(T_pred2)
+                #env.add(T_pred)
+                #env.add(T_pred2)
                 
                 #command_executor = CommandExecutor(self.task_list, maira.q, 2, 7)
                 task_executor = TaskExecutor(self.task_list, maira.q)
@@ -57,12 +56,12 @@ class Simulation:
                         maira.q = q
                               
                         Tee.T = task_executor.x_des.asTransformation()
-                        T_pred.T = task_executor.x_predict.asTransformation()
-                        T_pred2.T = task_executor.x_predict2.asTransformation()         
+                        #T_pred.T = task_executor.x_predict.asTransformation()
+                        #T_pred2.T = task_executor.x_predict2.asTransformation()         
                         
-                        current_time = time.time()
-                        dt = (current_time - last_time)
-                        last_time = current_time
+                        # current_time = time.time()
+                        # dt = (current_time - last_time)
+                        # last_time = current_time
                         # count = count + 1
                         # t = t + dt
 
@@ -71,6 +70,10 @@ class Simulation:
                         if task_executor.done:
                                 break;
                                 running = False;
+                                
+                
+                self.error_norm = task_executor.error_norm
+                self.q_dot_list = task_executor.q_dot_list
 
     
 
