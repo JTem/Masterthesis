@@ -33,11 +33,12 @@ class DifferentialKinematics:
                         
                 return np.array(grad)
         
-        def dir_manipulability_gradient2(self, q):
+        
+        def dir_manipulability_gradient2(self, q, dir):
                 
                 J = self.forward_kinematics.jacobian_body(q)
                 H = self.forward_kinematics.hessian(q)
-                W = np.diag(np.array([0,0,0,0,0,0]))
+                W = np.diag(dir)
                 
                 #manipulability =  np.sqrt(max(0, np.linalg.det(J@J.T)))
                 b = np.linalg.inv(J@J.T + np.eye(6)*0.05)
@@ -47,6 +48,33 @@ class DifferentialKinematics:
                         Jm[i] = (c.flatten("F").T)@b.flatten("F")
                         
                 return Jm
+        
+#         def dir_manipulability_gradient3(self, q):
+                
+#                 J = self.forward_kinematics.jacobian_body(q)
+#                 H = self.forward_kinematics.hessian(q)
+#                 W = np.array([1,0,0,0,0,1])
+                
+#                 Jm = np.zeros(7)
+#                 for j in range(6):
+#                         sel = [False]*6
+#                         sel[j] = True
+#                         J_dir = J[sel, :]
+#                         H_dir = H[sel,:,:]
+#                         #print(H_dir)
+                
+                
+#                         manipulability_dir =  np.sqrt(max(0, np.linalg.det(J_dir@J_dir.T)))
+#                         b = np.linalg.inv(J_dir@J_dir.T + 0.05)
+                        
+#                         Jm_dir = np.zeros(7)
+#                         for i in range(7):
+#                                 c = J_dir@H_dir[:,:,i].T
+#                                 Jm_dir[i] = (c.flatten("F").T)@b.flatten("F")
+                                
+#                         Jm += W[j]*Jm_dir
+                        
+#                 return Jm
         
         def dir_manipulability(self, q, v):
                 Jb = self.forward_kinematics.jacobian_body(q)
@@ -58,8 +86,9 @@ class DifferentialKinematics:
                         
                 return sum_w
         
-        def dir_manipulability_gradient(self, q, v):
+        def dir_manipulability_gradient(self, q):
                 
+                v = np.array([1,0,0,0,0,1])
                 w0 = self.dir_manipulability(q, v)
                 h = 0.0001
                 grad = []
@@ -201,7 +230,7 @@ class DifferentialKinematics:
                 P = sp.csc_matrix(np.eye(7))  # Quadratic term
                 
                 x_dot6 = np.array([1,0,0,0,0,0])
-                self.gradient = self.dir_manipulability_gradient2(q)  # Linear term
+                self.gradient = self.dir_manipulability_gradient(q)  # Linear term
                 #print("info:")
                 #print("q; ", q)
                 #print("gradient; ", self.gradient)

@@ -52,18 +52,11 @@ class Simulation:
 
 
                         task_executor.run(dt)
+                        
                         q = task_executor.q
                         maira.q = q
                               
                         Tee.T = task_executor.x_des.asTransformation()
-                        #T_pred.T = task_executor.x_predict.asTransformation()
-                        #T_pred2.T = task_executor.x_predict2.asTransformation()         
-                        
-                        # current_time = time.time()
-                        # dt = (current_time - last_time)
-                        # last_time = current_time
-                        # count = count + 1
-                        # t = t + dt
 
                         env.step(dt)
                         

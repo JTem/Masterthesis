@@ -48,6 +48,7 @@ class DQQBTrajectoryGenerator:
                 
                 
                 blend_time = self.min_blend_duration*0.5
+                
                 #first blend:
                 seg = self.Segments[0]
                 self.p0_list.append(seg.getPosition(0))

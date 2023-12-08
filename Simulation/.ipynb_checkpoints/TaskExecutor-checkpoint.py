@@ -2,7 +2,7 @@ import numpy as np
 from Simulation.ForwardKinematics import ForwardKinematics
 from Simulation.DifferentialKinematics import DifferentialKinematics
 from Simulation.MPC_DifferentialKinematics import MPC_DifferentialKinematics
-from Simulation.QP_DifferentialKinematics import QP_DifferentialKinematics
+from Simulation.QP_DifferentialKinematics2 import QP_DifferentialKinematics
 from neura_dual_quaternions import DualQuaternion
 
 class TaskExecutor:
@@ -21,7 +21,8 @@ class TaskExecutor:
                 
                 self.error_norm = []
                 self.q_dot_list = []
-                
+                #self.pred_time_list = [0.9, 1.1, 1.3, 1.5, 1.7, 2.0, 2.2, 2.5, 2.7, 2.9, 3.0, 3.3, 3.5]
+                self.pred_time_list = [0, 1.0, 1.3, 1.5, 1.7, 1.9, 2.1, 2.3, 2.5, 2.7, 2.9, 3.1, 3.3, 3.5, 3.7, 4.0]
                 self.use_mpc = False
                         
                 self.N = 10
@@ -228,10 +229,21 @@ class TaskExecutor:
                                 error = (self.x_des - x_real).asVector().flatten()
                                 self.error_norm.append(np.linalg.norm(error))
                                 
-                                xd_pred, xd_dot_pred = self.predictCartTasks(self.time + 0.5)
                                 
+                                pred_dir = np.ones(6)*0.9
+                                for i in range(len(self.pred_time_list)):
+                                        x, x_dot = self.predictCartTasks(self.time + self.pred_time_list[i])
+                                        dir = (2.0*x.inverse()*x_dot).as6Vector().flatten()
+                                        
+                                        if np.linalg.norm(dir) > 1e-6:
+                                                dir = np.abs(dir)/np.linalg.norm(dir)
+                                        
+                                        pred_dir += dir/len(self.pred_time_list)
+                                        
+                                
+                                pred_dir = np.abs(pred_dir)/np.linalg.norm(pred_dir)
                                 #self.q_dot = self.differential_kinematics.quadratic_program_1(self.q, self.q_dot, self.x_des, self.x_des_dot)
-                                self.q_dot = self.qp_differential_kinematics.quadratic_program(self.q, self.q_dot, self.x_des, self.x_des_dot)
+                                self.q_dot = self.qp_differential_kinematics.quadratic_program(self.q, self.q_dot, self.x_des, self.x_des_dot, pred_dir)
                                 #self.q_dot_list.append(self.differential_kinematics.gradient)
                                        
                         self.q += self.q_dot*dt
