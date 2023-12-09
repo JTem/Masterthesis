@@ -47,7 +47,7 @@ class Simulation:
                 #command_executor = CommandExecutor(self.task_list, maira.q, 2, 7)
                 task_executor = TaskExecutor(self.task_list, maira.q)
                 
-                dt = 0.01
+                dt = 0.005
                 while running:
 
 

@@ -17,7 +17,7 @@ class DifferentialKinematics:
                 }
         
         def manipulability(self, q):
-                J = self.forward_kinematics.jacobian_body(q)
+                J = self.forward_kinematics.jacobian6(q)
                 
                 return np.sqrt(max(0, np.linalg.det(J@J.T)))
         
@@ -40,7 +40,6 @@ class DifferentialKinematics:
                 H = self.forward_kinematics.hessian(q)
                 W = np.diag(dir)
                 
-                #manipulability =  np.sqrt(max(0, np.linalg.det(J@J.T)))
                 b = np.linalg.inv(J@J.T + np.eye(6)*0.05)
                 Jm = np.zeros(7)
                 for i in range(7):

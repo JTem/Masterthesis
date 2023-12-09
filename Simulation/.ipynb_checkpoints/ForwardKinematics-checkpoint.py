@@ -22,6 +22,7 @@ class ForwardKinematics:
 
                 self.screws_0 = [self.s1, self.s2, self.s3, self.s4, self.s5, self.s6, self.s7]
     
+
         def forward_kinematics(self, theta):
                 x = DualQuaternion.basicConstructor(1,0,0,0, 0,0,0,0)
                 for i in range(len(theta)):
@@ -29,6 +30,7 @@ class ForwardKinematics:
 
                 return x*self.M
     
+
         def jacobian(self, theta):
                 x = DualQuaternion.basicConstructor(1,0,0,0, 0,0,0,0)
                 J = np.zeros((8, len(theta)))
@@ -49,6 +51,7 @@ class ForwardKinematics:
 
                 return J
 
+        
         def jacobian_body(self, theta):
                 x = self.forward_kinematics(theta)
                 
@@ -60,6 +63,7 @@ class ForwardKinematics:
                 
 
                 return np.vstack([Jb[1:4], Jb[5:8]])
+        
         
         def jacobian6(self, theta):
                 x = DualQuaternion.basicConstructor(1,0,0,0, 0,0,0,0)
@@ -80,6 +84,7 @@ class ForwardKinematics:
                         J[:, i] = s_i.as6Vector().flatten()
 
                 return J
+        
         
         def jacobian_dot(self, theta, theta_dot):
 
@@ -117,6 +122,7 @@ class ForwardKinematics:
 
                 return J_dot
         
+        
         def jacobian_dot6(self, theta, theta_dot):
 
                 # initialize transformation as identity transformation
@@ -153,7 +159,6 @@ class ForwardKinematics:
 
                 return J_dot
         
-        import numpy as np
 
         def hessian(self, theta):
                 h = 0.000001
@@ -170,32 +175,5 @@ class ForwardKinematics:
                         theta_temp[i] += h
                         j_temp = self.jacobian_body(theta_temp)
                         H[:, :, i] = (j_temp - j) / h
-
-                # Multiply the Hessian tensor with theta_dot
-                #result = np.tensordot(H, theta_dot, axes=([2], [0]))
-
-                return H
-
-
-    
-        def hessian0(self, theta):
-                
-                def cross(a, b):
-                        x = a[1] * b[2] - a[2] * b[1]
-                        y = a[2] * b[0] - a[0] * b[2]
-                        z = a[0] * b[1] - a[1] * b[0]
-                        return np.array([x, y, z])
-                
-                n = 7
-                J = self.jacobian6(theta)
-                
-                H = np.zeros((n, 6, n))
-                for j in range(n):
-                        for i in range(j, n):
-                                H[j, :3, i] = cross(J[3:, j], J[:3, i])
-                                H[j, 3:, i] = cross(J[3:, j], J[3:, i])
-
-                                if i != j:
-                                        H[i, :3, j] = H[j, :3, i]
 
                 return H
