@@ -14,7 +14,7 @@ from swift import Swift
 from neura_dual_quaternions import Quaternion, DualQuaternion
 
 class Simulation:
-        def __init__(self, task_list):
+        def __init__(self, task_list, robot_type):
                 self.task_list = task_list
                 self.forward_kinematics = ForwardKinematics()
                 
@@ -37,19 +37,13 @@ class Simulation:
                 env.add(maira)
                 
                 Tee = sg.Axes(length = 0.12, pose = self.forward_kinematics.M.asTransformation())
-                T_pred = sg.Axes(length = 0.18, pose = DualQuaternion.basicConstructor(1,0,0,0, 0,0,0,0).asTransformation())
-                T_pred2 = sg.Axes(length = 0.18, pose = DualQuaternion.basicConstructor(1,0,0,0, 0,0,0,0).asTransformation())    
                 
                 env.add(Tee)
-                #env.add(T_pred)
-                #env.add(T_pred2)
-                
-                #command_executor = CommandExecutor(self.task_list, maira.q, 2, 7)
+
                 task_executor = TaskExecutor(self.task_list, maira.q)
                 
-                dt = 0.005
+                dt = 0.01
                 while running:
-
 
                         task_executor.run(dt)
                         

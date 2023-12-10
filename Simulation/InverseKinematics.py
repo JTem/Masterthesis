@@ -4,9 +4,11 @@ from Simulation.ForwardKinematics import ForwardKinematics
 
 class InverseKinematics:
         
-        def __init__(self, min_lim, max_lim):
+        def __init__(self, fk_type = "normal", min_lim, max_lim):
                 self.T = None
-                self.fk = ForwardKinematics()
+                self.fk = ForwardKinematics(fk_type)
+                self.dof = self.fk.dof
+                
                 self.min_lim = min_lim
                 self.max_lim = max_lim
     
@@ -24,9 +26,6 @@ class InverseKinematics:
                         J_H = 0.5*x_act.as_mat_right()@J
                         
                         I = np.eye(J.shape[1])
-                        
-                        
-                       
                         
                         # error calculation
                         pos_error_norm = np.linalg.norm(x_target.getPosition() - x_act.getPosition())
@@ -76,7 +75,6 @@ class InverseKinematics:
                         
                         pos_error = x_error.getPosition().flatten()
                         orientation_error = 2.0*x_error.real.log().getVector().flatten()
-                        
                                      
                         # error calculation
                         pos_error_norm = np.linalg.norm(pos_error)

@@ -15,14 +15,15 @@ class TaskExecutor:
                 
                 self.res = None
                 
-                self.forward_kinematics = ForwardKinematics()
+                fk_type = "weld"
+                self.fk = ForwardKinematics(fk_type)
                 self.differential_kinematics = DifferentialKinematics()
-                self.qp_differential_kinematics = QP_DifferentialKinematics()
+                self.qp_differential_kinematics = QP_DifferentialKinematics(fk_type)
                 
                 self.error_norm = []
                 self.q_dot_list = []
                 #self.pred_time_list = [0.9, 1.1, 1.3, 1.5, 1.7, 2.0, 2.2, 2.5, 2.7, 2.9, 3.0, 3.3, 3.5]
-                self.pred_time_list = [0, 0.1, 0.2, 0.4, 0.6, 0.7, 0.8, 0.9, 1.0, 1.3, 1.5, 1.7, 1.9, 2.1, 2.3, 2.5, 2.7, 2.9, 3.1, 3.3, 3.5, 3.7, 4.0, 4.2, 4.4, 4.6, 5.0]
+                self.pred_time_list = [0.0, 0.1, 0.2, 0.4, 0.6, 0.7, 0.8, 0.9, 1.0, 1.3, 1.5, 1.7, 1.9, 2.1, 2.3, 2.5, 2.7, 2.9, 3.1]#, 3.3, 3.5, 3.7, 4.0, 4.2, 4.4, 4.6, 5.0]
                 self.use_mpc = False
                         
                 self.N = 10
@@ -49,14 +50,14 @@ class TaskExecutor:
                                
                         if i == 0:
                                 if task.type == "wait" or task.type == "joint":
-                                        task.x0 = self.forward_kinematics.forward_kinematics(init_q)
+                                        task.x0 = self.fk.getFK(init_q)
                         
                         else:
                                 last_task = self.task_list[i-1]
                                 if task.type == "wait":
                                         
                                         if last_task.type == "joint":
-                                                task.x0 = self.forward_kinematics.forward_kinematics(last_task.q1)
+                                                task.x0 = self.fk.getFK(last_task.q1)
                                        
                                         elif last_task.type == "wait":
                                                 task.x0 = last_task.x0
@@ -67,7 +68,7 @@ class TaskExecutor:
                                 if task.type == "joint":
                                         
                                         if last_task.type == "joint":
-                                                task.x0 = self.forward_kinematics.forward_kinematics(last_task.q1)
+                                                task.x0 = self.fk.getFK(last_task.q1)
                                        
                                         elif last_task.type == "wait":
                                                 task.x0 = last_task.x0
@@ -135,27 +136,20 @@ class TaskExecutor:
                 cnt = self.getTaskCounter(self.time)
                 task = self.task_list[cnt]
                 
-                #print(self.mpc.is_seeded)
                 if task.type == "joint":
                         self.mpc.is_seeded = False
                         if not task.q0_set:
                                 task.q0_set = True
                                 task.q0 = self.q
                         self.q, self.q_dot = task.evaluate(self.time - self.time_vector[cnt])
-                        self.x_des = self.forward_kinematics.forward_kinematics(self.q)
+                        self.x_des = self.fk.getFK(self.q)
                         
                 else:
-                        #self.x_des, self.x_des_dot = task.evaluate(self.time - self.time_vector[cnt])
-                        
-                        #self.x_predict, _ = self.predictCartTasks(self.time + 0.5)
-                        #self.x_predict2, _ = self.predictCartTasks(self.time + 1)
-                        
-                        #self.q_dot = self.differential_kinematics.quadratic_program_2(self.q, self.q_dot, self.x_des, self.x_des_dot)
                         
                         if self.use_mpc and not self.mpc.is_seeded:
                                 
-                                x = self.forward_kinematics.forward_kinematics(self.q)
-                                J = self.forward_kinematics.jacobian(self.q)
+                                x = self.fk.getFK(self.q)
+                                J = self.fk.getSpaceJacobian(self.q)
                                 J_H = 0.5*x.as_mat_right()@J
                                 
                                 ref_list = []
@@ -163,15 +157,13 @@ class TaskExecutor:
                                         _, x_dot = self.predictCartTasks(self.time + self.mpc.dt_vector[i])
                                         ref_list.append(x_dot.asVector().flatten())
                                 
-                                print(ref_list)
                                 self.res = self.mpc.seed(self.q, self.q_dot, J_H, ref_list)
-                                print(self.res)
                         
                         if self.use_mpc:
                                 
                                 if not self.mpc.is_seeded:
-                                        x = self.forward_kinematics.forward_kinematics(self.q)
-                                        J = self.forward_kinematics.jacobian(self.q)
+                                        x = self.fk.getFK(self.q)
+                                        J = self.fk.getSpaceJacobian(self.q)
                                         J_H = 0.5*x.as_mat_right()@J
 
                                         ref_list = []
@@ -183,8 +175,8 @@ class TaskExecutor:
                                         self.res = self.mpc.seed(self.q, self.q_dot, J_H, ref_list)
                                         #print(self.res)
                                 
-                                x = self.forward_kinematics.forward_kinematics(self.q)
-                                J = self.forward_kinematics.jacobian(self.q)
+                                x = self.fk.getFK(self.q)
+                                J = self.fk.getSpaceJacobian(self.q)
                                 J_H = 0.5*x.as_mat_right()@J
                                 
                                 J_list = []
@@ -201,7 +193,7 @@ class TaskExecutor:
                                         ref_list.append(x_dot.asVector().flatten())
                                 
                                 self.x_des, _ = task.evaluate(self.time - self.time_vector[cnt])
-                                x_real = self.forward_kinematics.forward_kinematics(self.q)
+                                x_real = self.fk.getFK(self.q)
                                 #print(ref_list)
                                 #print(ref_list[0] + (self.x_des - x_real).asVector().flatten())
                                 
@@ -219,32 +211,31 @@ class TaskExecutor:
                         
                         else:
                                 self.x_des, self.x_des_dot = task.evaluate(self.time - self.time_vector[cnt])
-                        
-                                #self.x_predict, _ = self.predictCartTasks(self.time + 0.5)
-                                #self.x_predict2, _ = self.predictCartTasks(self.time + 1)
                                 
                                 self.x_des, _ = task.evaluate(self.time - self.time_vector[cnt])
-                                x_real = self.forward_kinematics.forward_kinematics(self.q)
+                                x_real = self.fk.getFK(self.q)
                                 
                                 error = (self.x_des - x_real).asVector().flatten()
                                 self.error_norm.append(np.linalg.norm(error))
                                 
-                                
-                                pred_dir = np.ones(6)*0.5
+                                pred_dir = np.ones(6)*0.2
                                 for i in range(len(self.pred_time_list)):
                                         x, x_dot = self.predictCartTasks(self.time + self.pred_time_list[i])
-                                        dir = (2.0*x.inverse()*x_dot).as6Vector().flatten()
+                                        dir_ = (2.0*x.inverse()*x_dot).as6Vector().flatten()
+                                        #dir_ = (2.0*x_dot*x.inverse()).as6Vector().flatten()
+                                        # if np.linalg.norm(dir_) > 1e-6:
+                                        #         dir_ = np.abs(dir_)/np.linalg.norm(dir_)
                                         
-                                        if np.linalg.norm(dir) > 1e-6:
-                                                dir = np.abs(dir)/np.linalg.norm(dir)
+                                        pred_dir += dir_
                                         
-                                        pred_dir += dir/len(self.pred_time_list)
-                                        
+                                if np.linalg.norm(pred_dir) > 1e-6:
+                                        pred_dir = np.abs(pred_dir)/np.linalg.norm(pred_dir)
                                 
-                                pred_dir = np.abs(pred_dir)/np.linalg.norm(pred_dir)
+                                #pred_dir = np.array([0,0,1,0.1,1,0])
+                                #pred_dir = np.abs(pred_dir)/np.linalg.norm(pred_dir)
                                 #self.q_dot = self.differential_kinematics.quadratic_program_1(self.q, self.q_dot, self.x_des, self.x_des_dot)
                                 self.q_dot = self.qp_differential_kinematics.quadratic_program(self.q, self.q_dot, self.x_des, self.x_des_dot, pred_dir)
-                                #self.q_dot_list.append(self.differential_kinematics.gradient)
+                                self.q_dot_list.append(self.qp_differential_kinematics.gradient)
                                        
                         self.q += self.q_dot*dt
                 

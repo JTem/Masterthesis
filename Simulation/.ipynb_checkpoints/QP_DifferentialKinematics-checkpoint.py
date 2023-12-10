@@ -2,27 +2,30 @@ import numpy as np
 from neura_dual_quaternions import Quaternion, DualQuaternion
 from Simulation.ForwardKinematics import ForwardKinematics
 from Simulation.DifferentialKinematics import DifferentialKinematics
+from Simulation.Manipulability import Manipulability
+
 import osqp
 import scipy.sparse as sp
 import scipy
 
 class QP_DifferentialKinematics:
         
-        def __init__(self):
-                self.forward_kinematics = ForwardKinematics()
-                self.dk = DifferentialKinematics()
+        def __init__(self, fk_type = "normal"):
+                self.fk = ForwardKinematics(fk_type)
+                self.mp = Manipulability(fk_type)
+                
                 
                 self.osqp_settings = {
-                    'alpha': 0.9,
+                    'alpha': 1,
                     'verbose': False,
                     'max_iter': 1000,
-                    'eps_abs': 1e-0,
-                    'eps_rel': 1e-0,
-                    'check_termination': 100,
+                    'eps_abs': 1e-3,
+                    'eps_rel': 1e-3,
+                    'check_termination': 25,
                 }
 
                 
-                self.dof = 7
+                self.dof = self.fk.dof
                 self.dim_jac = 8
                 
                 dim1 = self.dof + self.dim_jac
@@ -61,32 +64,27 @@ class QP_DifferentialKinematics:
         def updateGradient(self, q, direction):
                 
                 gradient = np.zeros(self.dof)
-                gradient[:self.dof] -= 1.0*self.dk.dir_manipulability_gradient2(q, direction)
-                #gradient[:self.dof] -= 2.0*self.dk.manipulability_gradient(q)
+                gradient[:self.dof] -= 1.0*self.mp.dir_manipulability_gradient(q, direction)
+                #gradient[:self.dof] -= 1.0*self.mp.dir_manipulability_gradient_projection(q, direction)
                 gradient[:self.dof] += 0.5*self.weight_pos_gradient@q
                 return gradient
         
         
         def quadratic_program(self, q, q_dot, DQd, DQd_dot, direction):
                 
-                x = self.forward_kinematics.forward_kinematics(q)
+                x = self.fk.getFK(q)
                 
                 error = (DQd - x).asVector()
                 
-                J = self.forward_kinematics.jacobian(q)
+                J = self.fk.getSpaceJacobian8(q)
                 J_H = 0.5*DQd.as_mat_right()@J
-                
-                # direction = (2.0*DQd.inverse()*DQd_dot).as6Vector().flatten()
-                # if np.linalg.norm(direction) > 1e-6:
-                #         direction = np.abs(direction)/np.linalg.norm(direction)
-                
-                print(direction)
+            
                 kp = 20.0
                 ref = (DQd_dot.asVector() + kp*error).flatten()
                 
                 Acon = self.updateConstraintMatrix(J_H, self.ConstraintMatrix)
                 self.lower_bound, self.upper_bound = self.updateBounds(self.lower_bound, self.upper_bound, ref)
-                #direction = np.array([1,0,0,0,0,1])
+    
                 self.gradient = self.updateGradient(q, direction)
                 
                 prob = osqp.OSQP()
