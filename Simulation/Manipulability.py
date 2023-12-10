@@ -34,7 +34,7 @@ class Manipulability:
                 H = self.fk.getHessian(q)
                 W = np.diag(direction)
                 
-                b = np.linalg.inv(J@J.T + np.eye(6)*0.05)
+                b = np.linalg.inv(J@J.T + np.eye(6)*0.01)
                 
                 Jm = np.zeros(self.dof)
                 for i in range(self.dof):

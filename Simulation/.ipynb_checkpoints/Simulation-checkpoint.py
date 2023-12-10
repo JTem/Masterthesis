@@ -15,8 +15,9 @@ from neura_dual_quaternions import Quaternion, DualQuaternion
 
 class Simulation:
         def __init__(self, task_list, robot_type):
+                self.fk_type = robot_type
                 self.task_list = task_list
-                self.forward_kinematics = ForwardKinematics()
+                self.fk = ForwardKinematics(robot_type)
                 
         def start(self):
                 running = True
@@ -36,21 +37,29 @@ class Simulation:
                 # Add the robot to the simulator
                 env.add(maira)
                 
-                Tee = sg.Axes(length = 0.12, pose = self.forward_kinematics.M.asTransformation())
+                Tee = sg.Axes(length = 0.12, pose = self.fk.M.asTransformation())
+                T_target = sg.Axes(length = 0.12, pose = self.fk.M.asTransformation())
                 
                 env.add(Tee)
-
-                task_executor = TaskExecutor(self.task_list, maira.q)
+                env.add(T_target)
                 
-                dt = 0.01
+                if self.fk_type == "extended":
+                    init_q = np.array([0,0,0,0,0,0,0,0])
+                else: 
+                    init_q = np.array([0,0,0,0,0,0,0])
+                task_executor = TaskExecutor(self.task_list, init_q, self.fk_type)
+                
+                dt = 0.005
                 while running:
 
                         task_executor.run(dt)
                         
-                        q = task_executor.q
+                        q = task_executor.q[:7]
                         maira.q = q
-                              
-                        Tee.T = task_executor.x_des.asTransformation()
+                        
+                        q_ext = np.array([*q, 0])
+                        Tee.T = self.fk.getFK(q_ext).asTransformation()
+                        T_target.T = task_executor.x_des.asTransformation()
 
                         env.step(dt)
                         

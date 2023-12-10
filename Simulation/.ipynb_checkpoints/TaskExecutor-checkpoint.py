@@ -3,25 +3,32 @@ from Simulation.ForwardKinematics import ForwardKinematics
 from Simulation.DifferentialKinematics import DifferentialKinematics
 from Simulation.MPC_DifferentialKinematics import MPC_DifferentialKinematics
 from Simulation.QP_DifferentialKinematics import QP_DifferentialKinematics
+from Simulation.QP_DifferentialKinematicsExtended import QP_DifferentialKinematicsExtended
 from neura_dual_quaternions import DualQuaternion
 
 class TaskExecutor:
         
-        def __init__(self, task_list, init_q):
+        def __init__(self, task_list, init_q, fk_type):
                 self.task_list = task_list
                 
                 self.time = 0
                 self.done = False
                 
                 self.res = None
+                self.time_scale = 1.0
                 
-                fk_type = "weld"
+                
                 self.fk = ForwardKinematics(fk_type)
                 self.differential_kinematics = DifferentialKinematics()
-                self.qp_differential_kinematics = QP_DifferentialKinematics(fk_type)
+                if fk_type == "extended":
+                    print("extended!!!!!!!!!")
+                    self.qp_differential_kinematics = QP_DifferentialKinematicsExtended(fk_type)
+                else:
+                        self.qp_differential_kinematics = QP_DifferentialKinematics(fk_type)
                 
                 self.error_norm = []
                 self.q_dot_list = []
+                self.time_scale_list = []
                 #self.pred_time_list = [0.9, 1.1, 1.3, 1.5, 1.7, 2.0, 2.2, 2.5, 2.7, 2.9, 3.0, 3.3, 3.5]
                 self.pred_time_list = [0.0, 0.1, 0.2, 0.4, 0.6, 0.7, 0.8, 0.9, 1.0, 1.3, 1.5, 1.7, 1.9, 2.1, 2.3, 2.5, 2.7, 2.9, 3.1]#, 3.3, 3.5, 3.7, 4.0, 4.2, 4.4, 4.6, 5.0]
                 self.use_mpc = False
@@ -131,7 +138,8 @@ class TaskExecutor:
                 
         def run(self, dt):
                 
-                self.time += dt
+                self.time += self.time_scale*dt
+                #print(self.time_scale)
                 
                 cnt = self.getTaskCounter(self.time)
                 task = self.task_list[cnt]
@@ -218,7 +226,8 @@ class TaskExecutor:
                                 error = (self.x_des - x_real).asVector().flatten()
                                 self.error_norm.append(np.linalg.norm(error))
                                 
-                                pred_dir = np.ones(6)*0.2
+                                pred_dir = np.ones(6)*0.5
+                                #pred_dir = np.array([1,1,1,0.1,0.1,0.1])*0.02
                                 for i in range(len(self.pred_time_list)):
                                         x, x_dot = self.predictCartTasks(self.time + self.pred_time_list[i])
                                         dir_ = (2.0*x.inverse()*x_dot).as6Vector().flatten()
@@ -226,17 +235,18 @@ class TaskExecutor:
                                         # if np.linalg.norm(dir_) > 1e-6:
                                         #         dir_ = np.abs(dir_)/np.linalg.norm(dir_)
                                         
-                                        pred_dir += dir_
+                                        pred_dir += abs(dir_)
                                         
-                                if np.linalg.norm(pred_dir) > 1e-6:
+                                if np.linalg.norm(pred_dir) > 1e-8:
                                         pred_dir = np.abs(pred_dir)/np.linalg.norm(pred_dir)
                                 
                                 #pred_dir = np.array([0,0,1,0.1,1,0])
                                 #pred_dir = np.abs(pred_dir)/np.linalg.norm(pred_dir)
                                 #self.q_dot = self.differential_kinematics.quadratic_program_1(self.q, self.q_dot, self.x_des, self.x_des_dot)
-                                self.q_dot = self.qp_differential_kinematics.quadratic_program(self.q, self.q_dot, self.x_des, self.x_des_dot, pred_dir)
-                                self.q_dot_list.append(self.qp_differential_kinematics.gradient)
-                                       
+                                self.q_dot, self.time_scale = self.qp_differential_kinematics.quadratic_program(self.q, self.q_dot, self.x_des, self.x_des_dot, pred_dir)
+                                self.q_dot_list.append(self.q_dot)
+                                
+                                self.time_scale_list.append(self.time_scale)     
                         self.q += self.q_dot*dt
                 
                 

@@ -7,12 +7,12 @@ import osqp
 import scipy.sparse as sp
 import scipy
 
-class QP_DifferentialKinematics:
+class QP_DifferentialKinematicsExtended:
         
         def __init__(self, fk_type = "normal"):
+            
                 self.fk = ForwardKinematics(fk_type)
                 self.mp = Manipulability(fk_type)
-                
                 
                 self.osqp_settings = {
                     'alpha':0.9,
@@ -34,13 +34,10 @@ class QP_DifferentialKinematics:
                 
                 self.ConstraintMatrix[self.dim_jac:self.dim_jac + self.dof+ 1, :self.dof+1] = np.eye(self.dof + 1)
                 
-                #self.ConstraintMatrix[:self.dim_jac, :self.dof] = 3*np.ones((8, 7))
-                #self.ConstraintMatrix[:self.dim_jac, self.dof:self.dof + 1] = -5*np.ones((8,1))
-                
                 self.Ws = 100
                 self.Wv = 0.7
-                self.weight_pos_gradient = np.diag([0.1, 2, 0.1, 0.001, 2, 0.001, 0.001])
-                self.P = sp.csc_matrix(self.Wv*np.diag([1,1,5,0.1,0.1,0.1,0.1, self.Ws/self.Wv]))
+                self.weight_pos_gradient = np.diag([0.1, 2, 0.1, 0.001, 2, 0.001, 0.001, 0])
+                self.P = sp.csc_matrix(self.Wv*np.diag([1,1,5,0.1,0.1,0.1,0.1, 0.0001, self.Ws/self.Wv]))
                 
                 self.gradient = np.zeros(dim2)
                 self.gradient[-1] = -self.Ws
@@ -51,8 +48,10 @@ class QP_DifferentialKinematics:
                 self.joint_limits = np.ones(self.dof)*3.14
                 self.joint_limits[1] = np.pi/180.0*120.0
                 self.joint_limits[3] = np.pi/180.0*150.0
-                
+                self.joint_limits[7] = 10000000
                 self.velocity_limits = np.ones(self.dof)*1.56
+                self.velocity_limits[-1] = 100
+                
                 self.upper_bound[self.dim_jac:self.dim_jac + self.dof] = self.velocity_limits
                 self.upper_bound[-1] = 1.0
                 
@@ -68,11 +67,7 @@ class QP_DifferentialKinematics:
                 Aconstraint[:self.dim_jac, :self.dof] = J
                 Aconstraint[:self.dim_jac, self.dof:self.dof + 1] = -ref
                 return Aconstraint
-        
-        
-#         def updateGradient(self, q, direction):
-                
-#                 self.gradient[:self.dof] = -1.0*self.mp.dir_manipulability_gradient(q, direction) + 0.2*self.weight_pos_gradient@q
+    
         
         def vel_damper(self, q, q_min, q_max):
             grad = np.zeros(self.dof)

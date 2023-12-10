@@ -13,7 +13,7 @@ class ForwardKinematics:
                 self.PEE = np.array([0, 0, 1.953])
                 tool_orientation = Quaternion(1,0,0,0)
                 
-                if fk_type == "weld":
+                if fk_type == "weld" or fk_type == "extended":
                         self.PEE = np.array([0, 0, 1.953 + 0.3599])
                         tool_orientation = Quaternion.fromAxisAngle(np.pi*0.25, np.array([0,1,0]))
                 
@@ -43,10 +43,10 @@ class ForwardKinematics:
                 
                 if fk_type == "extended":
                         tool_rotation_axis = tool_orientation*Quaternion(0,0,0,1)*tool_orientation.inverse()
-                        self.s8 = DualQuaternion.screwAxis(*tool_rotation_axis.getVector().flatten(), 0,0,self.d1+self.d3+self.d5 + 0.3599)
+                        self.s8 = DualQuaternion.screwAxis(*tool_rotation_axis.getVector().flatten(), 0,0,self.d1+self.d3+self.d5+self.d7 + 0.3599)
                         self.b8 = self.M.inverse()*self.s8*self.M
-                        self.screw_s.append(self.s8)
-                        self.screw_b.append(self.b8)
+                        self.screws_s.append(self.s8)
+                        self.screws_b.append(self.b8)
                 
                         self.dof = 8
         
