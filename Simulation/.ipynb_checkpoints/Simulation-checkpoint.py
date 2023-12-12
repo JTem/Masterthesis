@@ -69,7 +69,10 @@ class Simulation:
                                 
                 
                 self.error_norm = task_executor.error_norm
+                self.time_scale_list = task_executor.time_scale_list
+                self.q_list = task_executor.q_list
                 self.q_dot_list = task_executor.q_dot_list
+                self.gradient_list = task_executor.gradient_list
 
     
 

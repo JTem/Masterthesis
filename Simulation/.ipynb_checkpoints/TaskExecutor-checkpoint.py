@@ -27,6 +27,8 @@ class TaskExecutor:
                         self.qp_differential_kinematics = QP_DifferentialKinematics(fk_type)
                 
                 self.error_norm = []
+                self.gradient_list = []
+                self.q_list = []
                 self.q_dot_list = []
                 self.time_scale_list = []
                 #self.pred_time_list = [0.9, 1.1, 1.3, 1.5, 1.7, 2.0, 2.2, 2.5, 2.7, 2.9, 3.0, 3.3, 3.5]
@@ -244,11 +246,15 @@ class TaskExecutor:
                                 #pred_dir = np.abs(pred_dir)/np.linalg.norm(pred_dir)
                                 #self.q_dot = self.differential_kinematics.quadratic_program_1(self.q, self.q_dot, self.x_des, self.x_des_dot)
                                 self.q_dot, self.time_scale = self.qp_differential_kinematics.quadratic_program(self.q, self.q_dot, self.x_des, self.x_des_dot, pred_dir)
-                                self.q_dot_list.append(self.q_dot)
                                 
-                                self.time_scale_list.append(self.time_scale)     
-                        self.q += self.q_dot*dt
-                
+                                
+                                    
+                        self.q = self.q + self.q_dot*dt
+                        
+                        self.q_list.append(self.q[:7])
+                        self.q_dot_list.append(self.q_dot[:7])
+                        self.gradient_list.append(self.qp_differential_kinematics.gradient)
+                        self.time_scale_list.append(self.time_scale) 
                 
                 if self.time > self.time_vector[-1]:
                         self.done = True

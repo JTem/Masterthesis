@@ -18,8 +18,8 @@ class QP_DifferentialKinematicsExtended:
                     'alpha':0.9,
                     'verbose': False,
                     'max_iter': 1000,
-                    'eps_abs': 1e-2,
-                    'eps_rel': 1e-2,
+                    'eps_abs': 1e-3,
+                    'eps_rel': 1e-3,
                     'check_termination': 75,
                 }
 
@@ -34,9 +34,9 @@ class QP_DifferentialKinematicsExtended:
                 
                 self.ConstraintMatrix[self.dim_jac:self.dim_jac + self.dof+ 1, :self.dof+1] = np.eye(self.dof + 1)
                 
-                self.Ws = 100
+                self.Ws = 1000
                 self.Wv = 0.7
-                self.weight_pos_gradient = np.diag([0.1, 2, 0.1, 0.001, 2, 0.001, 0.001, 0])
+                self.weight_pos_gradient = np.diag([0.1, 2, 0.1, 0.001, 2, 0.001, 0.001, 10])
                 self.P = sp.csc_matrix(self.Wv*np.diag([1,1,5,0.1,0.1,0.1,0.1, 0.0001, self.Ws/self.Wv]))
                 
                 self.gradient = np.zeros(dim2)
@@ -70,25 +70,26 @@ class QP_DifferentialKinematicsExtended:
     
         
         def vel_damper(self, q, q_min, q_max):
-            grad = np.zeros(self.dof)
-            
-            for i in range(self.dof):
+                grad = np.zeros(self.dof)
                 
-                if q[i] > 0.70*q_max[i]:
-                        grad[i] = (q[i] - 0.85*q_max[i])/(abs(q[i] - q_max[i]) + 0.001)
+                thresh = 0.9
+                for i in range(self.dof):
+                
+                        if q[i] > thresh*q_max[i]:
+                                grad[i] = (q[i] - thresh*q_max[i])/(abs(q[i] - q_max[i]) + 0.01)
+
+                        if q[i] < thresh*q_min[i]:
+                                grad[i] = (q[i] - thresh*q_min[i])/(abs(q[i] - q_min[i]) + 0.91)
                         
-                if q[i] < 0.70*q_min[i]:
-                        grad[i] = (q[i] - 0.85*q_min[i])/(abs(q[i] - q_min[i]) + 0.001)
-                        
-            return grad
+                return grad
             
         def updateGradient(self, q, direction):
                 
                 gradient = np.zeros(self.dof + 1)
-                gradient[:self.dof] -= 1.0*self.mp.dir_manipulability_gradient(q, direction)
+                gradient[:self.dof] -= 2.0*self.mp.dir_manipulability_gradient(q, direction)
                 #gradient[:self.dof] -= 1.0*self.mp.dir_manipulability_gradient_projection(q, direction)
-                gradient[:self.dof] += 2*self.weight_pos_gradient@q
-                gradient[:self.dof] += 0.05*self.vel_damper(q, -self.joint_limits, self.joint_limits)
+                gradient[:self.dof] += 1.0*self.weight_pos_gradient@q
+                gradient[:self.dof] += 10.0*self.vel_damper(q, -self.joint_limits, self.joint_limits)
                 gradient[-1] = -self.Ws
                 
                 return gradient
