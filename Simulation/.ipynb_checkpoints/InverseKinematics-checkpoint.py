@@ -4,7 +4,7 @@ from Simulation.ForwardKinematics import ForwardKinematics
 
 class InverseKinematics:
         
-        def __init__(self, fk_type = "normal", min_lim, max_lim):
+        def __init__(self, min_lim, max_lim, fk_type = "normal"):
                 self.T = None
                 self.fk = ForwardKinematics(fk_type)
                 self.dof = self.fk.dof
@@ -20,9 +20,9 @@ class InverseKinematics:
                 condition_list = []
                 while True:
 
-                        x_act = self.fk.forward_kinematics(q_sol)
+                        x_act = self.fk.getFK(q_sol)
 
-                        J = self.fk.jacobian(q_sol)
+                        J = self.fk.getSpaceJacobian8(q_sol)
                         J_H = 0.5*x_act.as_mat_right()@J
                         
                         I = np.eye(J.shape[1])
@@ -65,20 +65,17 @@ class InverseKinematics:
                 condition_list = []
                 while True:
 
-                        x_act = self.fk.forward_kinematics(q_sol)
+                        x_act = self.fk.getFK(q_sol)
 
-                        J = self.fk.jacobian6(q_sol)
+                        J = self.fk.getSpaceJacobian(q_sol)
                         
                         I = np.eye(J.shape[0])
                         
-                        x_error = x_target*x_act.inverse()
+                        delta_x = x_target*x_act.inverse()
+                        log_error = 2.0*delta_x.log().as6Vector().flatten()
                         
-                        pos_error = x_error.getPosition().flatten()
-                        orientation_error = 2.0*x_error.real.log().getVector().flatten()
-                                     
-                        # error calculation
-                        pos_error_norm = np.linalg.norm(pos_error)
-                        orientation_error_norm = np.linalg.norm(orientation_error)
+                        pos_error_norm = np.linalg.norm(x_target.getPosition() - x_act.getPosition())
+                        orientation_error_norm = (x_target.real.inverse()*x_act.real).getAngle()
           
                         error_norm = pos_error_norm + orientation_error_norm
                         
@@ -91,9 +88,10 @@ class InverseKinematics:
                         
                         J_pinv = J.T @ np.linalg.inv(J @ J.T + damp*error_norm*I)  
 
-                        error = np.array([*orientation_error, *pos_error])
-
-                        delta_q = J_pinv@error
+                        #error = np.array([*orientation_error, *pos_error])
+                        
+                        #error = 2.0*
+                        delta_q = J_pinv@log_error
 
                         q_sol += delta_q
                         #q_sol = self.clamp(q_sol, self.min_lim, self.max_lim)

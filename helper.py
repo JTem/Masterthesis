@@ -11,7 +11,7 @@ np.set_printoptions(precision=2, suppress=True, linewidth=200, formatter={'float
 from Simulation.WaitTime import WaitTime
 from Simulation.MoveJoint import MoveJoint
 from Simulation.MoveLinear import MoveLinear
-
+from Simulation.ForwardKinematics import ForwardKinematics
 
 def plotIKResults(error_list_classic, error_list_DQ, success_count_classic, success_count_DQ, num_eval):
         
@@ -44,7 +44,7 @@ def plotIKResults(error_list_classic, error_list_DQ, success_count_classic, succ
         print("average num of iterations for DQ IK: ", sum_itDQ/num_eval)
 
         # Plotting error_norm
-        plt.figure(figsize=(12, 12))
+        plt.figure(figsize=(8, 8))
         plt.subplot(2, 1, 1)
         for i, sublist in enumerate(error_list_classic):
                 plt.plot(sublist, color='g', alpha = 0.02)

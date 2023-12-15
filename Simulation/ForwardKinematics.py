@@ -132,13 +132,13 @@ class ForwardKinematics:
                 J = np.zeros((6, self.dof))
                 
                 for i in range(self.dof-1,-1, -1):
-                    s_body = self.screws_b[i]
+                        s_body = self.screws_b[i]
                     
-                    s_i = x*s_body*x.inverse()
+                        s_i = x*s_body*x.inverse()
                     
-                    x = x*DualQuaternion.exp(-0.5*theta[i]*s_body)
+                        x = x*DualQuaternion.exp(-0.5*theta[i]*s_body)
                     
-                    J[:, i] = s_i.as6Vector().flatten()
+                        J[:, i] = s_i.as6Vector().flatten()
                     
                 return J
             
@@ -160,27 +160,6 @@ class ForwardKinematics:
                     
                 return J
             
-        def getHessian0(self, theta):
-            
-                def cross(a, b):
-                    x = a[1] * b[2] - a[2] * b[1]
-                    y = a[2] * b[0] - a[0] * b[2]
-                    z = a[0] * b[1] - a[1] * b[0]
-                    return np.array([x, y, z])
-                
-                J = self.getBodyJacobian(theta)
-                
-                H = np.zeros((6, self.dof, self.dof))
-                
-                for j in range(self.dof):
-                    for i in range(j, self.dof):
-                        H[:3, i, j] = cross(J[:3, j], J[:3, i])
-                        H[3:, i, j] = cross(J[:3, min(i,j)], J[3:, max(i,j)])
-                        
-                        if i != j:
-                            H[3:, j, i] = H[3:, i, j]
-                            
-                return H
 
         def getHessian(self, theta):
                 h = 0.000001

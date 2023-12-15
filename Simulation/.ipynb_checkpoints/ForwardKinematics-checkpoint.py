@@ -132,13 +132,13 @@ class ForwardKinematics:
                 J = np.zeros((6, self.dof))
                 
                 for i in range(self.dof-1,-1, -1):
-                    s_body = self.screws_b[i]
+                        s_body = self.screws_b[i]
                     
-                    s_i = x*s_body*x.inverse()
+                        s_i = x*s_body*x.inverse()
                     
-                    x = x*DualQuaternion.exp(-0.5*theta[i]*s_body)
+                        x = x*DualQuaternion.exp(-0.5*theta[i]*s_body)
                     
-                    J[:, i] = s_i.as6Vector().flatten()
+                        J[:, i] = s_i.as6Vector().flatten()
                     
                 return J
             
