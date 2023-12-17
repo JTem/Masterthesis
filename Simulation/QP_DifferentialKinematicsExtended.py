@@ -79,7 +79,7 @@ class QP_DifferentialKinematicsExtended:
                                 grad[i] = (q[i] - thresh*q_max[i])/(abs(q[i] - q_max[i]) + 0.01)
 
                         if q[i] < thresh*q_min[i]:
-                                grad[i] = (q[i] - thresh*q_min[i])/(abs(q[i] - q_min[i]) + 0.91)
+                                grad[i] = (q[i] - thresh*q_min[i])/(abs(q[i] - q_min[i]) + 0.01)
                         
                 return grad
             

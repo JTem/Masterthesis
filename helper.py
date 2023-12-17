@@ -13,11 +13,13 @@ from Simulation.MoveJoint import MoveJoint
 from Simulation.MoveLinear import MoveLinear
 from Simulation.ForwardKinematics import ForwardKinematics
 
-def plotIKResults(error_list_classic, error_list_DQ, success_count_classic, success_count_DQ, num_eval):
+def plotIKResults(error_list_classic, error_list_DQ, time_classic, time_DQ, success_count_classic, success_count_DQ, num_eval):
         
         print("sucess rate classic IK: ", 100.0*success_count_classic/num_eval, "%")
         print("sucess rate DQ IK: ", 100.0*success_count_DQ/num_eval, "%")
-
+        print("average time per iteration classic IK: ", time_classic/num_eval, "s")
+        print("average time per iteration DQ IK: ", time_DQ/num_eval, "s")
+        
         # Initialize a list to store the sum and count for each position
         sumsDQ = [0] * 22
         sum_itDQ = 0
