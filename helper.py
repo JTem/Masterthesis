@@ -4,6 +4,7 @@ from collections import deque
 import random
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 from mpl_toolkits.mplot3d import Axes3D
 from neura_dual_quaternions import Quaternion, DualQuaternion
 np.set_printoptions(precision=2, suppress=True, linewidth=200, formatter={'float': '{:8.3f}'.format})
@@ -72,7 +73,12 @@ def plotIKResults(error_list_classic, error_list_DQ, time_classic, time_DQ, succ
         plt.show()
         
         
-        
+def create_slider(name, start_val, min_val, max_val):
+        slider_width = '95%'
+
+        slider = widgets.FloatSlider(orientation='horizontal',description=name, value=start_val, min=min_val, max=max_val, step = 0.01, layout={'width': slider_width})
+        return slider
+
 def getRandomJointAngles():
         q1 = random.uniform(-np.pi, np.pi)
         q2 = random.uniform(-120*np.pi/180, 120*np.pi/180)

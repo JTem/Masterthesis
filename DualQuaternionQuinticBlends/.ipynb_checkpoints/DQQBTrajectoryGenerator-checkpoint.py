@@ -110,6 +110,7 @@ class DQQBTrajectoryGenerator:
                                 
                         max_acc_limit_violated = False
                         for i in range(0, self.num_blends):
+                                
                                 max_acc, max_jerk = self.maxAccJerkQuintic(self.p0_list[i], self.p1_list[i], self.v0_list[i], self.v1_list[i], self.a0_list[i], self.a1_list[i], self.duration_blend_list[i]) 
                                 max_angular_acc, max_angular_jerk = self.maxAccJerkCubic(self.ang_v0_list[i], self.ang_v1_list[i], np.array([0,0,0]), np.array([0,0,0]), self.duration_blend_list[i])
                                 
@@ -215,13 +216,11 @@ class DQQBTrajectoryGenerator:
                 self.time_blend_start.append(0)
                 self.time_vector.append(0)
                 
-                print(self.duration_blend_list)
                 for i in range(0,self.num_segments):
                         duration_sum = self.duration_blend_list[0]*0.5
                         for j in range(i+1):
                                 duration_sum += self.Segments[j].duration
-                                # if j == 0:
-                                #         duration_sum += self.duration_blend_list[0]*0.5
+                                
                         self.time_vector.append(duration_sum)
                         self.time_blend_start.append(duration_sum - self.duration_blend_list[i+1]*0.5)               
                 

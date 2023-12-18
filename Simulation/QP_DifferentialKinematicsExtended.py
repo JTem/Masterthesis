@@ -34,7 +34,7 @@ class QP_DifferentialKinematicsExtended:
                 
                 self.ConstraintMatrix[self.dim_jac:self.dim_jac + self.dof+ 1, :self.dof+1] = np.eye(self.dof + 1)
                 
-                self.Ws = 1000
+                self.Ws = 10
                 self.Wv = 0.7
                 self.weight_pos_gradient = np.diag([0.1, 2, 0.1, 0.001, 2, 0.001, 0.001, 10])
                 self.P = sp.csc_matrix(self.Wv*np.diag([1,1,5,0.1,0.1,0.1,0.1, 0.0001, self.Ws/self.Wv]))
@@ -90,7 +90,7 @@ class QP_DifferentialKinematicsExtended:
                 #gradient[:self.dof] -= 1.0*self.mp.dir_manipulability_gradient_projection(q, direction)
                 gradient[:self.dof] += 1.0*self.weight_pos_gradient@q
                 gradient[:self.dof] += 10.0*self.vel_damper(q, -self.joint_limits, self.joint_limits)
-                gradient[-1] = -self.Ws
+                gradient[-1] = -2*self.Ws
                 
                 return gradient
         

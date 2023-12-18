@@ -14,8 +14,9 @@ from swift import Swift
 from neura_dual_quaternions import Quaternion, DualQuaternion
 
 class Simulation:
-        def __init__(self, task_list, robot_type):
+        def __init__(self, task_list, robot_type = "normal", method = "classic"):
                 self.fk_type = robot_type
+                self.method = method
                 self.task_list = task_list
                 self.fk = ForwardKinematics(robot_type)
                 
@@ -47,7 +48,7 @@ class Simulation:
                     init_q = np.array([0,0,0,0,0,0,0,0])
                 else: 
                     init_q = np.array([0,0,0,0,0,0,0])
-                task_executor = TaskExecutor(self.task_list, init_q, self.fk_type)
+                task_executor = TaskExecutor(self.task_list, init_q, self.fk_type, self.method)
                 
                 dt = 0.005
                 while running:
