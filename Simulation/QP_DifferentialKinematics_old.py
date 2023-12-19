@@ -27,29 +27,20 @@ class QP_DifferentialKinematics:
                 self.dof = self.fk.dof
                 self.dim_jac = 8
                 
-                dim1 = 3*self.dof + self.dim_jac + 1
-                dim2 = 2*self.dof + 1
+                dim1 = self.dof + self.dim_jac + 1
+                dim2 = self.dof + 1
                 
                 self.ConstraintMatrix = np.zeros((dim1, dim2))
                 
                 self.ConstraintMatrix[self.dim_jac:self.dim_jac + self.dof+ 1, :self.dof+1] = np.eye(self.dof + 1)
                 
                 self.ConstraintMatrix[:self.dim_jac, :self.dof] = 2*np.ones((8, 7))
-                self.ConstraintMatrix[:self.dim_jac, 2*self.dof:2*self.dof + 1] = -3*np.ones((8,1))
-                self.ConstraintMatrix[self.dim_jac:self.dim_jac + self.dof, :self.dof] = np.eye(7)
-                self.ConstraintMatrix[self.dim_jac:self.dim_jac + self.dof, self.dof:2*self.dof] = -0.005*np.eye(7)
-                self.ConstraintMatrix[self.dim_jac + self.dof:self.dim_jac + 3*self.dof + 1, :2*self.dof + 1] = np.eye(2*self.dof + 1)
+                self.ConstraintMatrix[:self.dim_jac, self.dof:self.dof + 1] = -3*np.ones((8,1))
                 
-                
-                self.Ws = 45
-                self.Wv = 2.5
-                # acceleration weight
-                self.Wa = .0005
-                
+                self.Ws = 35
+                self.Wv = 5.5
                 self.weight_pos_gradient = np.diag([0.1, 2.0, 2.0, 0.001, 0.5, 0.001, 0.001])
-                self.weight_vel_gradient = np.diag([3, 3.0, 3.0, 1, 1, 1, 1])
-                
-                self.P = sp.csc_matrix(self.Wv*np.diag([1, 1, 2, 0.1, 0.1, 0.1, 0.1, self.Wa/self.Wv, self.Wa/self.Wv, self.Wa/self.Wv, self.Wa/self.Wv, self.Wa/self.Wv, self.Wa/self.Wv, self.Wa/self.Wv, self.Ws/self.Wv]))
+                self.P = sp.csc_matrix(self.Wv*np.diag([1,1,2,0.1,0.1,0.1,0.1, self.Ws/self.Wv]))
                 
                 self.gradient = np.zeros(dim2)
                 self.gradient[-1] = -2.0*self.Ws
@@ -63,14 +54,10 @@ class QP_DifferentialKinematics:
                 
                 self.velocity_limits = np.ones(self.dof)*np.pi/180.0*120.0
 
-                self.upper_bound[self.dim_jac:self.dim_jac + self.dof] = np.ones(self.dof)*5
-                self.upper_bound[self.dim_jac + self.dof:self.dim_jac + 2*self.dof] = self.velocity_limits
-                self.upper_bound[self.dim_jac + 2*self.dof:self.dim_jac + 3*self.dof] = np.ones(self.dof)*np.inf
+                self.upper_bound[self.dim_jac:self.dim_jac + self.dof] = self.velocity_limits
                 self.upper_bound[-1] = 1.0
                 
-                self.lower_bound[self.dim_jac:self.dim_jac + self.dof] = np.ones(self.dof)*5
-                self.lower_bound[self.dim_jac + self.dof:self.dim_jac + 2*self.dof] = -self.velocity_limits
-                self.lower_bound[self.dim_jac + 2*self.dof:self.dim_jac + 3*self.dof] = -np.ones(self.dof)*np.inf
+                self.lower_bound[self.dim_jac:self.dim_jac + self.dof] = -self.velocity_limits
                 self.lower_bound[-1] = 0.0
                 
                 if verbose:
@@ -89,15 +76,11 @@ class QP_DifferentialKinematics:
                         print("constant upper bound:")
                         print(self.upper_bound)
 
-                        
 
         def updateConstraintMatrix(self, Aconstraint, J, ref):
-                
                 Aconstraint[:self.dim_jac, :self.dof] = J
-                Aconstraint[:self.dim_jac, 2*self.dof:2*self.dof + 1] = -ref
-                
+                Aconstraint[:self.dim_jac, self.dof:self.dof + 1] = -ref
                 return Aconstraint
-        
         
         
         def vel_damper(self, q, q_min, q_max):
@@ -113,28 +96,17 @@ class QP_DifferentialKinematics:
                                 grad[i] = (q[i] - thresh*q_min[i])/(abs(q[i] - q_min[i]) + 0.01)
                         
                 return grad
-        
             
-        def updateGradient(self, q, q_dot, direction):
+        def updateGradient(self, q, direction):
                 
-                gradient = np.zeros(2*self.dof + 1)
-                gradient[:self.dof] -= 1*self.mp.dir_manipulability_gradient(q, direction)
+                gradient = np.zeros(self.dof + 1)
+                gradient[:self.dof] -= 0.5*self.mp.dir_manipulability_gradient(q, direction)
                 #gradient[:self.dof] += 0.01*np.ones(self.dof)
                 gradient[:self.dof] += 2.0*self.weight_pos_gradient@q
                 gradient[:self.dof] += 1.0*self.vel_damper(q, -self.joint_limits, self.joint_limits)
-                
-                gradient[self.dof:2*self.dof] += 0.001*self.weight_vel_gradient@q_dot
                 gradient[-1] = -2.0*self.Ws
                 
                 return gradient
-        
-        
-        def updateLimits(self, lower_limit, upper_limit, q_dot_last):
-                
-                lower_limit[self.dim_jac:self.dim_jac + self.dof] = q_dot_last
-                upper_limit[self.dim_jac:self.dim_jac + self.dof] = q_dot_last
-                
-                return lower_limit, upper_limit
         
         
         def quadratic_program(self, q, q_dot, DQd, DQd_dot, direction):
@@ -150,10 +122,10 @@ class QP_DifferentialKinematics:
                 ref = (DQd_dot.asVector() + kp*error)
                 
                 Acon = self.updateConstraintMatrix(self.ConstraintMatrix, J_H, ref)
-              
-                self.gradient = self.updateGradient(q, q_dot, direction)
-                self.lower_bound, self.upper_bound = self.updateLimits(self.lower_bound, self.upper_bound, q_dot)
-                
+                #self.lower_bound, self.upper_bound = self.updateBounds(self.lower_bound, self.upper_bound, ref)
+    
+                self.gradient = self.updateGradient(q, direction)
+                #print(self.gradient)
                 prob = osqp.OSQP()
                 prob.setup(self.P, self.gradient, sp.csc_matrix(Acon), self.lower_bound, self.upper_bound, **self.osqp_settings)
                 res = prob.solve()
