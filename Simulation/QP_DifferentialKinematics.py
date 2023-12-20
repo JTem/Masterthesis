@@ -12,7 +12,7 @@ class QP_DifferentialKinematics:
         def __init__(self, fk_type = "normal", verbose = False):
                 self.fk = ForwardKinematics(fk_type)
                 self.mp = Manipulability(fk_type)
-                
+                self.fk_type = fk_type
                 
                 self.osqp_settings = {
                     'alpha':0.9,
@@ -31,25 +31,27 @@ class QP_DifferentialKinematics:
                 dim2 = 2*self.dof + 1
                 
                 self.ConstraintMatrix = np.zeros((dim1, dim2))
-                
                 self.ConstraintMatrix[self.dim_jac:self.dim_jac + self.dof+ 1, :self.dof+1] = np.eye(self.dof + 1)
                 
-                self.ConstraintMatrix[:self.dim_jac, :self.dof] = 2*np.ones((8, 7))
-                self.ConstraintMatrix[:self.dim_jac, 2*self.dof:2*self.dof + 1] = -3*np.ones((8,1))
-                self.ConstraintMatrix[self.dim_jac:self.dim_jac + self.dof, :self.dof] = np.eye(7)
-                self.ConstraintMatrix[self.dim_jac:self.dim_jac + self.dof, self.dof:2*self.dof] = -0.005*np.eye(7)
+                #self.ConstraintMatrix[:self.dim_jac, :self.dof] = 2*np.ones((8, 7))
+                #self.ConstraintMatrix[:self.dim_jac, 2*self.dof:2*self.dof + 1] = -3*np.ones((8,1))
+                self.ConstraintMatrix[self.dim_jac:self.dim_jac + self.dof, :self.dof] = np.eye(self.dof)
+                self.ConstraintMatrix[self.dim_jac:self.dim_jac + self.dof, self.dof:2*self.dof] = -0.005*np.eye(self.dof)
                 self.ConstraintMatrix[self.dim_jac + self.dof:self.dim_jac + 3*self.dof + 1, :2*self.dof + 1] = np.eye(2*self.dof + 1)
                 
                 
                 self.Ws = 45
                 self.Wv = 2.5
-                # acceleration weight
-                self.Wa = .0005
+                self.Wa = .001 # acceleration weight
                 
-                self.weight_pos_gradient = np.diag([0.1, 2.0, 2.0, 0.001, 0.5, 0.001, 0.001])
-                self.weight_vel_gradient = np.diag([3, 3.0, 3.0, 1, 1, 1, 1])
-                
-                self.P = sp.csc_matrix(self.Wv*np.diag([1, 1, 2, 0.1, 0.1, 0.1, 0.1, self.Wa/self.Wv, self.Wa/self.Wv, self.Wa/self.Wv, self.Wa/self.Wv, self.Wa/self.Wv, self.Wa/self.Wv, self.Wa/self.Wv, self.Ws/self.Wv]))
+                if self.fk_type == "extended":
+                        self.weight_pos_gradient = np.diag([0.1, 2, 0.5, 0.001, 2, 0.001, 0.001, 5])
+                        self.weight_vel_gradient = np.diag([3, 3.0, 3.0, 1, 1, 1, 1, 3])
+                        self.P = sp.csc_matrix(self.Wv*np.diag([1, 1, 2, 0.1, 0.1, 0.1, 0.1, 0.1, self.Wa/self.Wv, self.Wa/self.Wv, self.Wa/self.Wv, self.Wa/self.Wv, self.Wa/self.Wv, self.Wa/self.Wv, self.Wa/self.Wv, 0.01*self.Wa/self.Wv, self.Ws/self.Wv]))
+                else:
+                        self.weight_pos_gradient = np.diag([0.1, 2.0, 2.0, 0.001, 0.5, 0.001, 0.001])
+                        self.weight_vel_gradient = np.diag([3, 3.0, 3.0, 1, 1, 1, 1])
+                        self.P = sp.csc_matrix(self.Wv*np.diag([1, 1, 2, 0.1, 0.1, 0.1, 0.1, self.Wa/self.Wv, self.Wa/self.Wv, self.Wa/self.Wv, self.Wa/self.Wv, self.Wa/self.Wv, self.Wa/self.Wv, self.Wa/self.Wv, self.Ws/self.Wv]))
                 
                 self.gradient = np.zeros(dim2)
                 self.gradient[-1] = -2.0*self.Ws
@@ -119,11 +121,11 @@ class QP_DifferentialKinematics:
                 
                 gradient = np.zeros(2*self.dof + 1)
                 gradient[:self.dof] -= 1*self.mp.dir_manipulability_gradient(q, direction)
-                #gradient[:self.dof] += 0.01*np.ones(self.dof)
                 gradient[:self.dof] += 2.0*self.weight_pos_gradient@q
                 gradient[:self.dof] += 1.0*self.vel_damper(q, -self.joint_limits, self.joint_limits)
                 
                 gradient[self.dof:2*self.dof] += 0.001*self.weight_vel_gradient@q_dot
+                
                 gradient[-1] = -2.0*self.Ws
                 
                 return gradient

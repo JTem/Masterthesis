@@ -11,6 +11,7 @@ class DifferentialKinematics:
                 self.fk = ForwardKinematics(self.fk_type)
                 self.mp = Manipulability(fk_type)
                 self.dof = self.fk.dof
+                self.gradient = np.zeros(self.dof)
 
         
         def differential_kinematics(self, q, q_dot, DQd, DQd_dot):
@@ -29,7 +30,7 @@ class DifferentialKinematics:
                 kp = 20
                 vel = x_dot.flatten() + kp*error
                 pinv = np.linalg.pinv(J)
-                self.gradient = self.dir_manipulability_gradient2(q)
+                self.gradient = self.manipulability_gradient(q)
                 q_dot_ = pinv@vel.flatten() + 5.0*(np.eye(self.dof)-pinv@J)@self.gradient
                 
                 return q_dot_.flatten(), 1

@@ -2,14 +2,14 @@ import numpy as np
 from Simulation.ForwardKinematics import ForwardKinematics
 from Simulation.DifferentialKinematics import DifferentialKinematics
 from Simulation.QP_DifferentialKinematics import QP_DifferentialKinematics
-from Simulation.QP_DifferentialKinematicsExtended import QP_DifferentialKinematicsExtended
 from neura_dual_quaternions import DualQuaternion
 
 class TaskExecutor:
         
-        def __init__(self, task_list, init_q, fk_type, method = "classic"):
+        def __init__(self, task_list, init_q, fk_type, method = "classic", extended = False):
                 self.task_list = task_list
                 self.method = method
+                self.extended = extended
                 self.time = 0
                 self.done = False
                 
@@ -18,16 +18,12 @@ class TaskExecutor:
                 
                 
                 self.fk = ForwardKinematics(fk_type)
-                if fk_type == "extended":
-                        if self.method == "qp":
-                                self.idk = QP_DifferentialKinematicsExtended(fk_type)
-                        else:
-                                self.idk = DifferentialKinematics(fk_type)
+            
+                if self.method == "qp":
+                        self.idk = QP_DifferentialKinematics(fk_type)
                 else:
-                        if self.method == "qp":
-                                self.idk = QP_DifferentialKinematics(fk_type)
-                        else:
-                                self.idk = DifferentialKinematics(fk_type)
+                        self.idk = DifferentialKinematics(fk_type)
+               
                         
                 self.error_norm = []
                 self.gradient_list = []
@@ -157,10 +153,10 @@ class TaskExecutor:
                                     
                         self.q = self.q + self.q_dot*dt
                         
-                        self.q_list.append(self.q[:7])
-                        self.q_dot_list.append(self.q_dot[:7])
-                        self.gradient_list.append(self.idk.gradient)
-                        self.time_scale_list.append(self.time_scale) 
+                self.q_list.append(self.q[:7])
+                self.q_dot_list.append(self.q_dot[:7])
+                self.gradient_list.append(self.idk.gradient)
+                self.time_scale_list.append(self.time_scale) 
                 
                 if self.time > self.time_vector[-1]:
                         self.done = True
