@@ -42,7 +42,7 @@ class QP_DifferentialKinematics:
                 
                 self.Ws = 45
                 self.Wv = 2.5
-                self.Wa = .001 # acceleration weight
+                self.Wa = .0005 # acceleration weight
                 
                 if self.fk_type == "extended":
                         self.weight_pos_gradient = np.diag([0.1, 2, 0.5, 0.001, 2, 0.001, 0.001, 5])
@@ -109,10 +109,10 @@ class QP_DifferentialKinematics:
                 for i in range(self.dof):
                 
                         if q[i] > thresh*q_max[i]:
-                                grad[i] = (q[i] - thresh*q_max[i])/(abs(q[i] - q_max[i]) + 0.01)
+                                grad[i] = (q[i] - thresh*q_max[i])/(abs(q[i] - q_max[i]) + 0.001)
                         
                         if q[i] < thresh*q_min[i]:
-                                grad[i] = (q[i] - thresh*q_min[i])/(abs(q[i] - q_min[i]) + 0.01)
+                                grad[i] = (q[i] - thresh*q_min[i])/(abs(q[i] - q_min[i]) + 0.001)
                         
                 return grad
         
@@ -120,11 +120,12 @@ class QP_DifferentialKinematics:
         def updateGradient(self, q, q_dot, direction):
                 
                 gradient = np.zeros(2*self.dof + 1)
-                gradient[:self.dof] -= 1*self.mp.dir_manipulability_gradient(q, direction)
-                gradient[:self.dof] += 2.0*self.weight_pos_gradient@q
+                #gradient[:self.dof] -= 4.0*self.mp.dir_manipulability_gradient(q, direction)
+                gradient[:self.dof] -= 4.0*self.mp.manipulability_gradient(q)
+                gradient[:self.dof] += 0.1*self.weight_pos_gradient@q
                 gradient[:self.dof] += 1.0*self.vel_damper(q, -self.joint_limits, self.joint_limits)
                 
-                gradient[self.dof:2*self.dof] += 0.001*self.weight_vel_gradient@q_dot
+                gradient[self.dof:2*self.dof] += 0.003*self.weight_vel_gradient@q_dot
                 
                 gradient[-1] = -2.0*self.Ws
                 

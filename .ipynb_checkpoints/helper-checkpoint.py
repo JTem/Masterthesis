@@ -12,8 +12,43 @@ np.set_printoptions(precision=2, suppress=True, linewidth=200, formatter={'float
 from Simulation.WaitTime import WaitTime
 from Simulation.MoveJoint import MoveJoint
 from Simulation.MoveLinear import MoveLinear
+from Simulation.MoveTrajectory import MoveTrajectory
+from Simulation.Simulation import Simulation
 from Simulation.ForwardKinematics import ForwardKinematics
 
+from DualQuaternionQuinticBlends.LineGenerator import LineGenerator
+from DualQuaternionQuinticBlends.ArcGenerator import ArcGenerator
+from DualQuaternionQuinticBlends.DQQBTrajectoryGenerator import DQQBTrajectoryGenerator
+
+plt.rcParams.update({
+    "axes.facecolor": "white",
+    "axes.edgecolor": "black",
+    "axes.labelsize": 10,  # Increase font size for axes labels
+    "axes.titlesize": 12,  # Increase font size for the title
+    "xtick.labelsize": 10,  # Increase font size for the x-tick labels
+    "ytick.labelsize": 10,  # Increase font size for the y-tick labels
+    "legend.fontsize": 10,  # Increase font size for legend
+    "font.size": 12  # Increase default font size for all text in plot
+})
+
+def plotJointAngles(time_list, joint_angles_list):
+        plt.figure(figsize=(12, 6))
+        
+        # Assuming each element in joint_angles_list is a list of 7 joint angles at a given time step
+        for i in range(7):  # There are 7 joints
+                # Extract the i-th joint angle from each time step and plot
+                joint_angle = [angles[i] for angles in joint_angles_list]
+                plt.plot(time_list, joint_angle, linewidth=1, label=f"Joint {i+1}")
+                
+        plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+        plt.title('Joint Angles over Time')
+        plt.xlabel('Time')
+        plt.ylabel('Joint Angles')
+        plt.legend()
+        plt.show()
+
+
+        
 def plotIKResults(error_list_classic, error_list_DQ, time_classic, time_DQ, success_count_classic, success_count_DQ, num_eval):
         
         print("sucess rate classic IK: ", 100.0*success_count_classic/num_eval, "%")
@@ -50,8 +85,8 @@ def plotIKResults(error_list_classic, error_list_DQ, time_classic, time_DQ, succ
         plt.figure(figsize=(8, 8))
         plt.subplot(2, 1, 1)
         for i, sublist in enumerate(error_list_classic):
-                plt.plot(sublist, color='g', alpha = 0.02)
-        plt.plot(average_error_C, color = "m")
+                plt.plot(sublist, color='g', alpha = 0.05)
+        plt.plot(average_error_C, color = "m", linewidth=1)
         plt.grid(True, which='both', linestyle='--', linewidth=0.5)
         plt.yscale('log')
         plt.title('Results Classic IK')
@@ -61,7 +96,7 @@ def plotIKResults(error_list_classic, error_list_DQ, time_classic, time_DQ, succ
         plt.subplot(2, 1, 2)
         for i, sublist in enumerate(error_list_DQ):
                 plt.plot(sublist, color='b', alpha = 0.02)
-        plt.plot(average_error_DQ, color = "r")
+        plt.plot(average_error_DQ, color = "r", linewidth=1)
         plt.grid(True, which='both', linestyle='--', linewidth=0.5)
         plt.yscale('log')
         plt.title('Results Dual Quaternion IK')

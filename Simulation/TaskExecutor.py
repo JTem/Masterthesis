@@ -24,7 +24,8 @@ class TaskExecutor:
                 else:
                         self.idk = DifferentialKinematics(fk_type)
                
-                        
+                
+                self.time_list = []
                 self.error_norm = []
                 self.gradient_list = []
                 self.q_list = []
@@ -117,7 +118,7 @@ class TaskExecutor:
         def run(self, dt):
                 
                 self.time += self.time_scale*dt
-                
+               
                 cnt = self.getTaskCounter(self.time)
                 task = self.task_list[cnt]
                 
@@ -152,7 +153,8 @@ class TaskExecutor:
                                 
                                     
                         self.q = self.q + self.q_dot*dt
-                        
+                
+                self.time_list.append(self.time)
                 self.q_list.append(self.q[:7])
                 self.q_dot_list.append(self.q_dot[:7])
                 self.gradient_list.append(self.idk.gradient)
