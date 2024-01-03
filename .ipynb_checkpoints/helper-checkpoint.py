@@ -2,6 +2,7 @@ import ipywidgets as widgets
 import numpy as np
 from collections import deque
 import random
+import time
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
@@ -15,6 +16,7 @@ from Simulation.MoveLinear import MoveLinear
 from Simulation.MoveTrajectory import MoveTrajectory
 from Simulation.Simulation import Simulation
 from Simulation.ForwardKinematics import ForwardKinematics
+from Simulation.ForwardKinematicsDH import ForwardKinematicsDH
 
 from DualQuaternionQuinticBlends.LineGenerator import LineGenerator
 from DualQuaternionQuinticBlends.ArcGenerator import ArcGenerator
@@ -31,6 +33,22 @@ plt.rcParams.update({
     "font.size": 12  # Increase default font size for all text in plot
 })
 
+def plotJointVelocities(time_list, joint_velocities_list):
+        plt.figure(figsize=(12, 6))
+        
+        # Assuming each element in joint_angles_list is a list of 7 joint angles at a given time step
+        for i in range(7):  # There are 7 joints
+                # Extract the i-th joint angle from each time step and plot
+                joint_velocities = [velocities[i] for velocities in joint_velocities_list]
+                plt.plot(time_list, joint_velocities, linewidth=1, label=f"Joint {i+1}")
+                
+        plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+        plt.title('Joint Velocities over Time')
+        plt.xlabel('Time')
+        plt.ylabel('Joint Velocities')
+        plt.legend()
+        plt.show()
+        
 def plotJointAngles(time_list, joint_angles_list):
         plt.figure(figsize=(12, 6))
         
@@ -49,12 +67,11 @@ def plotJointAngles(time_list, joint_angles_list):
 
 
         
-def plotIKResults(error_list_classic, error_list_DQ, time_classic, time_DQ, success_count_classic, success_count_DQ, num_eval):
+def plotIKResults(error_list_classic, error_list_DQ, success_count_classic, success_count_DQ, num_eval):
         
         print("sucess rate classic IK: ", 100.0*success_count_classic/num_eval, "%")
         print("sucess rate DQ IK: ", 100.0*success_count_DQ/num_eval, "%")
-        print("average time per iteration classic IK: ", time_classic/num_eval, "s")
-        print("average time per iteration DQ IK: ", time_DQ/num_eval, "s")
+
         
         # Initialize a list to store the sum and count for each position
         sumsDQ = [0] * 22
