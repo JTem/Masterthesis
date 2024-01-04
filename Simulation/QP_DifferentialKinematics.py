@@ -9,10 +9,11 @@ import scipy
 
 class QP_DifferentialKinematics:
         
-        def __init__(self, fk_type = "normal", verbose = False):
+        def __init__(self, fk_type = "normal", method = "qp",  verbose = False):
                 self.fk = ForwardKinematics(fk_type)
                 self.mp = Manipulability(fk_type)
                 self.fk_type = fk_type
+                self.method = method
                 
                 self.osqp_settings = {
                     'alpha':0.9,
@@ -40,9 +41,9 @@ class QP_DifferentialKinematics:
                 self.ConstraintMatrix[self.dim_jac + self.dof:self.dim_jac + 3*self.dof + 1, :2*self.dof + 1] = np.eye(2*self.dof + 1)
                 
                 
-                self.Ws = 45
-                self.Wv = 2.5
-                self.Wa = .0005 # acceleration weight
+                self.Ws = 200
+                self.Wv = 5.5 # velocity weight
+                self.Wa = .0002 # acceleration weight
                 
                 if self.fk_type == "extended":
                         self.weight_pos_gradient = np.diag([0.1, 2, 0.5, 0.001, 2, 0.001, 0.001, 5])
@@ -73,7 +74,7 @@ class QP_DifferentialKinematics:
                 self.lower_bound[self.dim_jac:self.dim_jac + self.dof] = np.ones(self.dof)*5
                 self.lower_bound[self.dim_jac + self.dof:self.dim_jac + 2*self.dof] = -self.velocity_limits
                 self.lower_bound[self.dim_jac + 2*self.dof:self.dim_jac + 3*self.dof] = -np.ones(self.dof)*np.inf
-                self.lower_bound[-1] = 0.0
+                self.lower_bound[-1] = 0.01
                 
                 if verbose:
                         print("Weighting matrix P:")
@@ -101,7 +102,6 @@ class QP_DifferentialKinematics:
                 return Aconstraint
         
         
-        
         def vel_damper(self, q, q_min, q_max):
                 grad = np.zeros(self.dof)
                 
@@ -120,12 +120,15 @@ class QP_DifferentialKinematics:
         def updateGradient(self, q, q_dot, direction):
                 
                 gradient = np.zeros(2*self.dof + 1)
-                #gradient[:self.dof] -= 4.0*self.mp.dir_manipulability_gradient(q, direction)
-                gradient[:self.dof] -= 4.0*self.mp.manipulability_gradient(q)
-                gradient[:self.dof] += 0.1*self.weight_pos_gradient@q
+                if self.method == "qp":
+                        gradient[:self.dof] -= 2.0*self.mp.dir_manipulability_gradient(q, direction)
+                if self.method == "qp_yoshikawa":
+                        gradient[:self.dof] -= 2.0*self.mp.manipulability_gradient(q)
+                        
+                gradient[:self.dof] += 0.2*self.weight_pos_gradient@q
                 gradient[:self.dof] += 1.0*self.vel_damper(q, -self.joint_limits, self.joint_limits)
                 
-                gradient[self.dof:2*self.dof] += 0.003*self.weight_vel_gradient@q_dot
+                gradient[self.dof:2*self.dof] += 0.005*self.weight_vel_gradient@q_dot
                 
                 gradient[-1] = -2.0*self.Ws
                 

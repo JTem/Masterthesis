@@ -62,12 +62,49 @@ def plotJointAngles(time_list, joint_angles_list):
                 
         plt.grid(True, which='both', linestyle='--', linewidth=0.5)
         plt.title('Joint Angles over Time')
-        plt.xlabel('Time')
+        plt.xlabel('Time [s]')
         plt.ylabel('Joint Angles')
         plt.legend()
         plt.show()
 
+def plotJointVariables(time_list, joint_var_list, title, y_label):
+        plt.figure(figsize=(12, 6))
+        
+        # Assuming each element in joint_angles_list is a list of 7 joint angles at a given time step
+        for i in range(7):  # There are 7 joints
+                # Extract the i-th joint angle from each time step and plot
+                joint_var = [angles[i] for angles in joint_var_list]
+                plt.plot(time_list, joint_var, linewidth=1, label=f"Joint {i+1}")
+                
+        plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+        plt.title(title)
+        plt.xlabel('Time [s]')
+        plt.ylabel(y_label)
+        plt.legend()
+        plt.show()
 
+def plotVariable(time_list, var_list, title, y_label):
+        plt.figure(figsize=(12, 6))
+
+        plt.plot(time_list, var_list, linewidth=1)
+                
+        plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+        plt.title(title)
+        plt.xlabel('Time [s]')
+        plt.ylabel(y_label)
+        plt.show()
+
+def plotTimeScale(time_list, var_list, title):
+        plt.figure(figsize=(12, 6))
+
+        plt.plot(time_list, var_list, linewidth=1)
+                
+        plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+        plt.title(title)
+        plt.xlabel('Time [s]')
+        plt.ylabel("time scale factor")
+        plt.ylim(0, 1.1)
+        plt.show()
         
 def plotIKResults(error_list_classic, error_list_DQ, success_count_classic, success_count_DQ, num_eval):
         

@@ -14,26 +14,26 @@ class DifferentialKinematics:
                 self.gradient = np.zeros(self.dof)
 
         
-        def differential_kinematics(self, q, q_dot, DQd, DQd_dot):
-                x = self.fk.getFK(q)
+#         def differential_kinematics(self, q, q_dot, DQd, DQd_dot):
+#                 x = self.fk.getFK(q)
                 
-                x_error = DQd*x.inverse()
-                pos_error = x_error.getPosition()
-                o_error = x_error.real.log().getVector()
+#                 x_error = DQd*x.inverse()
+#                 pos_error = x_error.getPosition()
+#                 o_error = x_error.real.log().getVector()
 
-                Omega = DQd_dot*DQd.inverse()*2.0
-                x_dot = Omega.as6Vector()
+#                 Omega = DQd_dot*DQd.inverse()*2.0
+#                 x_dot = Omega.as6Vector()
 
-                error = np.array([*o_error.flatten(), *pos_error.flatten()])
-                J = self.fk.getSpaceJacobian(q)
+#                 error = np.array([*o_error.flatten(), *pos_error.flatten()])
+#                 J = self.fk.getSpaceJacobian(q)
                 
-                kp = 20
-                vel = x_dot.flatten() + kp*error
-                pinv = np.linalg.pinv(J)
-                self.gradient = self.manipulability_gradient(q)
-                q_dot_ = pinv@vel.flatten() + 5.0*(np.eye(self.dof)-pinv@J)@self.gradient
+#                 kp = 20
+#                 vel = x_dot.flatten() + kp*error
+#                 pinv = np.linalg.pinv(J)
+#                 self.gradient = self.manipulability_gradient(q)
+#                 q_dot_ = pinv@vel.flatten() + 5.0*(np.eye(self.dof)-pinv@J)@self.gradient
                 
-                return q_dot_.flatten(), 1
+#                 return q_dot_.flatten(), 1
         
     
         def differential_kinematics_DQ(self, q, q_dot, DQd, DQd_dot):

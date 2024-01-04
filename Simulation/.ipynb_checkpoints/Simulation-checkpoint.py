@@ -45,9 +45,9 @@ class Simulation:
                 env.add(T_target)
                 
                 if self.fk_type == "extended":
-                    init_q = np.array([0,0,0,0,0,0,0,0])
+                        init_q = np.array([0,0,0,0,0,0,0,0])
                 else: 
-                    init_q = np.array([0,0,0,0,0,0,0])
+                        init_q = np.array([0,0,0,0,0,0,0])
                 task_executor = TaskExecutor(self.task_list, init_q, self.fk_type, self.method)
                 
                 dt = 0.01

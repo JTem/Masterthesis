@@ -11,6 +11,7 @@ class TaskExecutor:
                 self.method = method
                 self.extended = extended
                 self.time = 0
+                self.time_orig = 0
                 self.done = False
                 
                 self.res = None
@@ -19,10 +20,10 @@ class TaskExecutor:
                 
                 self.fk = ForwardKinematics(fk_type)
             
-                if self.method == "qp":
-                        self.idk = QP_DifferentialKinematics(fk_type)
-                else:
+                if self.method == "classic":
                         self.idk = DifferentialKinematics(fk_type)
+                else:
+                        self.idk = QP_DifferentialKinematics(fk_type, self.method)
                
                 
                 self.time_list = []
@@ -117,6 +118,7 @@ class TaskExecutor:
                 
         def run(self, dt):
                 
+                self.time_orig += dt
                 self.time += self.time_scale*dt
                
                 cnt = self.getTaskCounter(self.time)
@@ -137,7 +139,7 @@ class TaskExecutor:
                         error = (self.x_des - x_real).asVector().flatten()
                         self.error_norm.append(np.linalg.norm(error))
 
-                        pred_dir = np.ones(6)*0.3
+                        pred_dir = np.ones(6)*0.2
                         for i in range(len(self.pred_time_list)):
                                 x, x_dot = self.predictCartTasks(self.time + self.pred_time_list[i])
                                 dir_ = (2.0*x.inverse()*x_dot).as6Vector().flatten()
@@ -147,14 +149,14 @@ class TaskExecutor:
                         
                         if self.method == "classic":
                                 self.q_dot, self.time_scale = self.idk.differential_kinematics_DQ(self.q, self.q_dot, self.x_des, self.x_des_dot)
-                        if self.method == "qp":
+                        else:
                                 self.q_dot, self.time_scale = self.idk.quadratic_program(self.q, self.q_dot, self.x_des, self.x_des_dot, pred_dir)
                                 
                                 
-                                    
-                        self.q = self.q + self.q_dot*dt
+                        white_noise_vector = np.random.normal(0, 1, 7)
+                        self.q = self.q + (self.q_dot + 0.0001*white_noise_vector)*dt
                 
-                self.time_list.append(self.time)
+                self.time_list.append(self.time_orig)
                 self.q_list.append(self.q[:7])
                 self.q_dot_list.append(self.q_dot[:7])
                 self.gradient_list.append(self.idk.gradient)
