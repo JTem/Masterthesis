@@ -62,10 +62,6 @@ pip install numpy
 pip install matplotlib
 ```
 
-## Usage
-
-Guidelines on how to run the notebooks and reproduce the results. Provide commands for starting JupyterLab and executing the notebooks.
-
 ## Contact
 
 For questions, please contact Jens Temminghoff at jens.temminghoff@neura-robotics.com.
