@@ -74,6 +74,7 @@ class Simulation:
                 self.time_list = task_executor.time_list
                 self.q_list = task_executor.q_list
                 self.q_dot_list = task_executor.q_dot_list
+                self.q_dot_norm_list = task_executor.q_dot_norm_list
                 self.gradient_list = task_executor.gradient_list
 
     

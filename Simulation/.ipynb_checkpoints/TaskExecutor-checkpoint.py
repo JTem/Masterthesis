@@ -31,6 +31,7 @@ class TaskExecutor:
                 self.gradient_list = []
                 self.q_list = []
                 self.q_dot_list = []
+                self.q_dot_norm_list = []
                 self.time_scale_list = []
                 self.pred_time_list = [0.0, 0.1, 0.2, 0.4, 0.6, 0.7, 0.8, 0.9, 1.0, 1.3, 1.5, 1.7, 1.9, 2.1, 2.3, 2.5, 2.7, 2.9, 3.1]
                 
@@ -78,8 +79,8 @@ class TaskExecutor:
                 
 
                 self.q = init_q
-                self.q_dot = np.zeros(7)
-                self.q_ddot = np.zeros(7)
+                self.q_dot = np.zeros(self.fk.dof)
+                self.q_ddot = np.zeros(self.fk.dof)
                 
                 self.x_des = DualQuaternion.basicConstructor(1,0,0,0, 0,0,0,0)
                 self.x_des_dot = DualQuaternion.basicConstructor(0,0,0,0, 0,0,0,0)
@@ -155,12 +156,13 @@ class TaskExecutor:
                                 self.q_dot, self.time_scale = self.idk.quadratic_program(self.q, self.q_dot, self.x_des, self.x_des_dot, pred_dir)
                                 
                                 
-                        white_noise_vector = np.random.normal(0, 1, 7)
+                        white_noise_vector = np.random.normal(0, 1, self.fk.dof)
                         self.q = self.q + (self.q_dot + 0.0001*white_noise_vector)*dt
                 
                 self.time_list.append(self.time_orig)
                 self.q_list.append(self.q[:7])
                 self.q_dot_list.append(self.q_dot[:7])
+                self.q_dot_norm_list.append(np.linalg.norm(self.q_dot[:7]))
                 self.gradient_list.append(self.idk.gradient)
                 self.error_norm_list.append(error_norm)
                 self.time_scale_list.append(self.time_scale) 

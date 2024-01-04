@@ -94,15 +94,16 @@ def plotVariable(time_list, var_list, title, y_label):
         plt.ylabel(y_label)
         plt.show()
 
-def plotErrorComparison(time_list, var_list, title, y_label):
+def plotVelNormComparison(time_list1, time_list2, vel1_list, vel2_list):
         plt.figure(figsize=(12, 6))
 
-        plt.plot(time_list, var_list, linewidth=1)
-                
+        plt.plot(time_list1, vel1_list, linewidth=1, label = "Directional Manipulability Gradient")
+        plt.plot(time_list2, vel2_list, linewidth=1, label = "Yoshikawa Manipulability Gradient")
         plt.grid(True, which='both', linestyle='--', linewidth=0.5)
-        plt.title(title)
+        plt.title("Joint Velocity Norm Comparison: Directional vs Yoshikawa Manipulability Gradient ")
         plt.xlabel('Time [s]')
-        plt.ylabel(y_label)
+        plt.ylabel('Joint Velocity Norm [deg/s]')
+        plt.legend()
         plt.show()
         
 def plotTimeScale(time_list, var_list, title):
