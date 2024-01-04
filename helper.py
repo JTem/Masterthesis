@@ -7,7 +7,6 @@ import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from mpl_toolkits.mplot3d import Axes3D
-from neura_dual_quaternions import Quaternion, DualQuaternion
 np.set_printoptions(precision=2, suppress=True, linewidth=200, formatter={'float': '{:8.3f}'.format})
 
 from Simulation.WaitTime import WaitTime
@@ -17,6 +16,9 @@ from Simulation.MoveTrajectory import MoveTrajectory
 from Simulation.Simulation import Simulation
 from Simulation.ForwardKinematics import ForwardKinematics
 from Simulation.ForwardKinematicsDH import ForwardKinematicsDH
+from Simulation.InverseKinematics import InverseKinematics
+
+from neura_dual_quaternions import Quaternion, DualQuaternion
 
 from DualQuaternionQuinticBlends.LineGenerator import LineGenerator
 from DualQuaternionQuinticBlends.ArcGenerator import ArcGenerator
