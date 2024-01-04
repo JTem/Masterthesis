@@ -69,7 +69,7 @@ class Simulation:
                                 running = False;
                                 
                 
-                self.error_norm = task_executor.error_norm
+                self.error_norm_list = task_executor.error_norm_list
                 self.time_scale_list = task_executor.time_scale_list
                 self.time_list = task_executor.time_list
                 self.q_list = task_executor.q_list

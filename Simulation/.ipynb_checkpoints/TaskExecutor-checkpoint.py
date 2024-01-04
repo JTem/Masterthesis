@@ -27,7 +27,7 @@ class TaskExecutor:
                
                 
                 self.time_list = []
-                self.error_norm = []
+                self.error_norm_list = []
                 self.gradient_list = []
                 self.q_list = []
                 self.q_dot_list = []
@@ -123,13 +123,14 @@ class TaskExecutor:
                
                 cnt = self.getTaskCounter(self.time)
                 task = self.task_list[cnt]
-                
+                error_norm = 0
                 if task.type == "joint":
                         if not task.q0_set:
                                 task.q0_set = True
                                 task.q0 = self.q
                         self.q, self.q_dot = task.evaluate(self.time - self.time_vector[cnt])
                         self.x_des = self.fk.getFK(self.q)
+                        error_norm = 0
                         
                 else:
                         self.x_des, self.x_des_dot = task.evaluate(self.time - self.time_vector[cnt])
@@ -137,9 +138,10 @@ class TaskExecutor:
                         x_real = self.fk.getFK(self.q)
 
                         error = (self.x_des - x_real).asVector().flatten()
-                        self.error_norm.append(np.linalg.norm(error))
+                        error_norm = np.linalg.norm(error)
+                       
 
-                        pred_dir = np.ones(6)*0.2
+                        pred_dir = np.ones(6)*0.5
                         for i in range(len(self.pred_time_list)):
                                 x, x_dot = self.predictCartTasks(self.time + self.pred_time_list[i])
                                 dir_ = (2.0*x.inverse()*x_dot).as6Vector().flatten()
@@ -160,6 +162,7 @@ class TaskExecutor:
                 self.q_list.append(self.q[:7])
                 self.q_dot_list.append(self.q_dot[:7])
                 self.gradient_list.append(self.idk.gradient)
+                self.error_norm_list.append(error_norm)
                 self.time_scale_list.append(self.time_scale) 
                 
                 if self.time > self.time_vector[-1]:

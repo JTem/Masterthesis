@@ -94,6 +94,17 @@ def plotVariable(time_list, var_list, title, y_label):
         plt.ylabel(y_label)
         plt.show()
 
+def plotErrorComparison(time_list, var_list, title, y_label):
+        plt.figure(figsize=(12, 6))
+
+        plt.plot(time_list, var_list, linewidth=1)
+                
+        plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+        plt.title(title)
+        plt.xlabel('Time [s]')
+        plt.ylabel(y_label)
+        plt.show()
+        
 def plotTimeScale(time_list, var_list, title):
         plt.figure(figsize=(12, 6))
 

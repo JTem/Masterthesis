@@ -41,8 +41,8 @@ class QP_DifferentialKinematics:
                 self.ConstraintMatrix[self.dim_jac + self.dof:self.dim_jac + 3*self.dof + 1, :2*self.dof + 1] = np.eye(2*self.dof + 1)
                 
                 
-                self.Ws = 200
-                self.Wv = 5.5 # velocity weight
+                self.Ws = 250
+                self.Wv = 4.0 # velocity weight
                 self.Wa = .0002 # acceleration weight
                 
                 if self.fk_type == "extended":
@@ -125,10 +125,10 @@ class QP_DifferentialKinematics:
                 if self.method == "qp_yoshikawa":
                         gradient[:self.dof] -= 2.0*self.mp.manipulability_gradient(q)
                         
-                gradient[:self.dof] += 0.2*self.weight_pos_gradient@q
+                gradient[:self.dof] += 0.1*self.weight_pos_gradient@q
                 gradient[:self.dof] += 1.0*self.vel_damper(q, -self.joint_limits, self.joint_limits)
                 
-                gradient[self.dof:2*self.dof] += 0.005*self.weight_vel_gradient@q_dot
+                gradient[self.dof:2*self.dof] += 0.01*self.weight_vel_gradient@q_dot
                 
                 gradient[-1] = -2.0*self.Ws
                 
