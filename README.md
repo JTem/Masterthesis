@@ -36,7 +36,7 @@ This will also install other requirements such as Swift and Spatialmath-Python.
 pip install neura-roboticstoolbox
 ```
 
-The quternion and dual quaternion maths can be found in the for the thesis developed package [neura_dual_quaternions](https://github.com/JTem/neura_dual_quaternions)
+The quaternion and dual quaternion maths can be found in the for the thesis developed package [neura_dual_quaternions](https://github.com/JTem/neura_dual_quaternions)
 
 ```bash
 pip install neura-dual-quaternions
@@ -68,7 +68,7 @@ Guidelines on how to run the notebooks and reproduce the results. Provide comman
 
 ## Contact
 
-For questions, please contact Jens Temminghoff at [jens.temminghoff@neura-robotics.com].
+For questions, please contact Jens Temminghoff at jens.temminghoff@neura-robotics.com.
 
 ## Thesis Details
 
