@@ -27,7 +27,40 @@ This master thesis was submitted to the Institute of Mechanism Theory, Machine D
 
 ## Installation
 
-Instructions for setting up the environment to run the notebooks, including required libraries and dependencies.
+The Thesis requires several packages to run the Notebooks.
+
+Neura Robotics Toolbox extends the [Robotics Toolbox Python](https://github.com/petercorke/robotics-toolbox-python). Installation may require some special care.
+This will also install other requirements such as Swift and Spatialmath-Python.
+
+```bash
+pip install neura-roboticstoolbox
+```
+
+The quternion and dual quaternion maths can be found in the for the thesis developed package [neura_dual_quaternions](https://github.com/JTem/neura_dual_quaternions)
+
+```bash
+pip install neura-dual-quaternions
+```
+
+For interactive plots, the packages jupyter-matplotlib and jupyter-widgets are needed
+
+```bash
+pip install ipympl
+```
+
+```bash
+pip install ipywidgets
+```
+
+Other site packages, which are needed are:
+
+```bash
+pip install numpy
+```
+
+```bash
+pip install matplotlib
+```
 
 ## Usage
 
