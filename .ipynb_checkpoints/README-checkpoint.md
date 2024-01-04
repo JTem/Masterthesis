@@ -29,7 +29,7 @@ This master thesis was submitted to the Institute of Mechanism Theory, Machine D
 
 The Thesis requires several packages to run the Notebooks.
 
-[neura_robotics_toolbox](https://github.com/JTem/neura_robotics_toolbox) extends the [Robotics Toolbox Python](https://github.com/petercorke/robotics-toolbox-python). Installation may require some special care.
+[Neura Robotics Toolbox](https://github.com/JTem/neura_robotics_toolbox) extends the [Robotics Toolbox Python](https://github.com/petercorke/robotics-toolbox-python). Installation may require some special care.
 This will also install other requirements such as Swift and Spatialmath-Python.
 
 ```bash
