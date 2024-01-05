@@ -34,8 +34,8 @@ class QP_DifferentialKinematics:
                 self.ConstraintMatrix = np.zeros((dim1, dim2))
                 self.ConstraintMatrix[self.dim_jac:self.dim_jac + self.dof+ 1, :self.dof+1] = np.eye(self.dof + 1)
                 
-                #self.ConstraintMatrix[:self.dim_jac, :self.dof] = 2*np.ones((8, 7))
-                #self.ConstraintMatrix[:self.dim_jac, 2*self.dof:2*self.dof + 1] = -3*np.ones((8,1))
+                self.ConstraintMatrix[:self.dim_jac, :self.dof] = 2*np.ones((8, 7))
+                self.ConstraintMatrix[:self.dim_jac, 2*self.dof:2*self.dof + 1] = -3*np.ones((8,1))
                 self.ConstraintMatrix[self.dim_jac:self.dim_jac + self.dof, :self.dof] = np.eye(self.dof)
                 self.ConstraintMatrix[self.dim_jac:self.dim_jac + self.dof, self.dof:2*self.dof] = -0.005*np.eye(self.dof)
                 self.ConstraintMatrix[self.dim_jac + self.dof:self.dim_jac + 3*self.dof + 1, :2*self.dof + 1] = np.eye(2*self.dof + 1)
@@ -77,6 +77,8 @@ class QP_DifferentialKinematics:
                 self.lower_bound[-1] = 0.01
                 
                 if verbose:
+                        #np.set_printoptions(precision=1, suppress=True, linewidth=200, formatter={'float': '{:8.2f}'.format})
+
                         print("Weighting matrix P:")
                         print(self.P.toarray())
                         print("")

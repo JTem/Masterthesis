@@ -17,6 +17,7 @@ from Simulation.Simulation import Simulation
 from Simulation.ForwardKinematics import ForwardKinematics
 from Simulation.ForwardKinematicsDH import ForwardKinematicsDH
 from Simulation.InverseKinematics import InverseKinematics
+from Simulation.QP_DifferentialKinematics import QP_DifferentialKinematics
 
 from neura_dual_quaternions import Quaternion, DualQuaternion
 
