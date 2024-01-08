@@ -17,7 +17,6 @@ class QP_DifferentialKinematics:
                 
                 self.osqp_settings = {
                     'alpha':0.9,
-                    'verbose': False,
                     'max_iter': 1000,
                     'eps_abs': 1e-2,
                     'eps_rel': 1e-2,
