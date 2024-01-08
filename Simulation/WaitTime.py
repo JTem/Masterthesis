@@ -1,4 +1,4 @@
- import numpy as np
+import numpy as np
 from neura_dual_quaternions import DualQuaternion
 
 class WaitTime:
