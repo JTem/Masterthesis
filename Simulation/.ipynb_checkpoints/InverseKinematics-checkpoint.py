@@ -16,7 +16,7 @@ class InverseKinematics:
                 count = 0  # Initialize iteration counter
                 q_sol = q_guess.copy() # Initialize the solution as the guess
                 error_norm_list = [] # List to hold the error norms for each iteration
-                I = np.eye(J.shape[1]) # Initialize the identity matrix for regularization
+               
                 while True:
 
                         x_act = self.fk.getFK(q_sol) # Calculate the current end-effector pose
@@ -38,6 +38,9 @@ class InverseKinematics:
                         if error_norm < 1.0e-6:
                                 # Return the solution and success flag
                                 return q_sol, error_norm_list, True
+                        
+                        # Initialize the identity matrix for regularization
+                        I = np.eye(J.shape[1]) 
                         
                         # Calculate the damped pseudo-inverse of Jacobian
                         J_pinv = np.linalg.inv(J_H.T @ J_H + damp*error_norm*I) @ J_H.T  
@@ -151,7 +154,7 @@ class InverseKinematics:
                 count = 0 # Initialize iteration counter
                 q_sol = q_guess.copy() # Initialize the solution as the guess
                 error_norm_list = [] # List to hold the error norms for each iteration
-                I = np.eye(J.shape[0]) # Initialize the identity matrix for regularization
+                
                 while True:
                 
                         # Calculate the current end-effector pose
@@ -180,6 +183,9 @@ class InverseKinematics:
                         if error_norm < 1.0e-6:
                                 # Return the solution and success flag
                                 return q_sol, error_norm_list, True
+                        
+                        # Initialize the identity matrix for regularization
+                        I = np.eye(J.shape[0]) 
                         
                         # Calculate the damped pseudo-inverse of Jacobian
                         J_pinv = J.T @ np.linalg.inv(J @ J.T + damp*error_norm*I)  

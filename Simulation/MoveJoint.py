@@ -36,15 +36,15 @@ class MoveJoint:
                 # Return the interpolated joint positions and velocities
                 return self.q, self.q_dot
     
-#         def interpolateJoint(self, q0, q1, total_Time, time):
-#                 s, s_dot, s_ddot = self.scurve.evaluate(0, 1, total_Time, 0.4, 0.3, time)
+        def interpolateJoint(self, q0, q1, total_Time, time):
+                s, s_dot, s_ddot = self.scurve.evaluate(0, 1, total_Time, 0.4, 0.3, time)
 
-#                 dq = q1 - q0
-#                 q_interpolated = q0 + dq*s
-#                 q_dot_interpolated = dq*s_dot
-#                 q_ddot_interpolated = dq*s_ddot
+                dq = q1 - q0
+                q_interpolated = q0 + dq*s
+                q_dot_interpolated = dq*s_dot
+                q_ddot_interpolated = dq*s_ddot
 
-#                 return q_interpolated, q_dot_interpolated, q_ddot_interpolated
+                return q_interpolated, q_dot_interpolated, q_ddot_interpolated
     
 
         

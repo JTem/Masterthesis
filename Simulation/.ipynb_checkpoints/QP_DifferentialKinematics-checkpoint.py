@@ -17,7 +17,7 @@ class QP_DifferentialKinematics:
                 
                 self.osqp_settings = {
                     'alpha':0.9,
-                    'verbose': False,
+                    'verbose':False,
                     'max_iter': 1000,
                     'eps_abs': 1e-2,
                     'eps_rel': 1e-2,
@@ -34,7 +34,7 @@ class QP_DifferentialKinematics:
                 self.ConstraintMatrix = np.zeros((dim1, dim2))
                 self.ConstraintMatrix[self.dim_jac:self.dim_jac + self.dof+ 1, :self.dof+1] = np.eye(self.dof + 1)
                 
-                self.ConstraintMatrix[:self.dim_jac, :self.dof] = 2*np.ones((8, 7))
+                self.ConstraintMatrix[:self.dim_jac, :self.dof] = 2*np.ones((8, self.dof))
                 self.ConstraintMatrix[:self.dim_jac, 2*self.dof:2*self.dof + 1] = -3*np.ones((8,1))
                 self.ConstraintMatrix[self.dim_jac:self.dim_jac + self.dof, :self.dof] = np.eye(self.dof)
                 self.ConstraintMatrix[self.dim_jac:self.dim_jac + self.dof, self.dof:2*self.dof] = -0.005*np.eye(self.dof)
