@@ -228,6 +228,8 @@ class DQQBTrajectoryGenerator:
                 
 
         def evaluate(self, t):
+
+                
                 seg, cnt = self.determineSegmentType(t, self.time_blend_start, self.duration_blend_list)
 
                 if seg == "blend":
@@ -405,7 +407,7 @@ class DQQBTrajectoryGenerator:
                 if t >= time_blend_start[-1]:
                         return "blend", len(time_blend_start)-1
 
-                if t >= time_blend_start[cnt] and t <= time_blend_start[cnt] + T_blend_list[cnt]:
+                if t >= time_blend_start[cnt] and t < time_blend_start[cnt] + T_blend_list[cnt]:
                         return "blend", cnt
 
                 else:

@@ -228,6 +228,9 @@ class DQQBTrajectoryGenerator:
                 
 
         def evaluate(self, t):
+                if t > self.time_vector[-1]:
+                        t = self.time_vector[-1]
+                
                 seg, cnt = self.determineSegmentType(t, self.time_blend_start, self.duration_blend_list)
 
                 if seg == "blend":
@@ -300,7 +303,7 @@ class DQQBTrajectoryGenerator:
                
                 dq_dot = DualQuaternion(0.5*(w*dq.real), 0.5*(v + 0.5*t*w)*dq.real)
                 
-                dq_ddot = DualQuaternion(0.5*(w_dot + 0.5*w*w)*dq.real, 0.5*((a + 0.5*(v*w + t*w_dot)) + 0.5*(v + 0.5*t*w)*w)*dq.real)
+                dq_ddot = DualQuaternion(0.5*(w_dot + 0.5*w*w)*dq.real, 0.5*(a + 0.5*(v*w + t*w_dot) + 0.5*(v + 0.5*t*w)*w)*dq.real)
 
                 return dq, dq_dot, dq_ddot
 
@@ -405,7 +408,7 @@ class DQQBTrajectoryGenerator:
                 if t >= time_blend_start[-1]:
                         return "blend", len(time_blend_start)-1
 
-                if t >= time_blend_start[cnt] and t <= time_blend_start[cnt] + T_blend_list[cnt]:
+                if t >= time_blend_start[cnt] and t < time_blend_start[cnt] + T_blend_list[cnt]:
                         return "blend", cnt
 
                 else:
