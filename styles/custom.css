@@ -85,7 +85,7 @@
 
 .jp-RenderedText, .jp-OutputArea-output, .jp-CodeCell, .jp-MarkdownCell {
     background-color: #ffffff; 
-    max-width: 994px; /* A4 width in pixels */
+    max-width: 1400px; /* A4 width in pixels */
     margin-left: 20px; /* Center align the block */
     /*margin-right: auto; /* Center align the block */
 }
