@@ -15,7 +15,7 @@ class Arc:
                 self.angle = angle
                 
                 # Calculating the difference between the initial and final orientations
-                delta_q = q1.inverse()*q2
+                delta_q = self.q1.inverse()*self.q2
                 
                 # calculate the total translational distance
                 self.dist = angle * radius
@@ -27,7 +27,7 @@ class Arc:
                 self.theta = abs(delta_q.getAngle())
                 
                 # compute and normalize the rotation axis
-                e = delta_dq.real.log()
+                e = delta_q.log()
                 if e.norm() > 1e-6:
                         e = e.normalize()
 
