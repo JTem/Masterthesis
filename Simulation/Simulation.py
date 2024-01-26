@@ -15,9 +15,10 @@ from neura_dual_quaternions import Quaternion, DualQuaternion
 
 class Simulation:
         # Initialize the Simulation class with a list of tasks, robot type, and method for kinematics
-        def __init__(self, task_list, robot_type = "normal", method = "classic"):
+        def __init__(self, task_list, robot_type = "normal", method = "classic", browser = None):
                 self.fk_type = robot_type # Type of robot for kinematics (normal/extended)
                 self.method = method # Method for solving kinematics (classic/qp/qp_yoshikawa))
+                self.browser = browser
                 self.task_list = task_list
                 self.fk = ForwardKinematics(robot_type) # Forward kinematics object for the robot type
         
@@ -35,8 +36,10 @@ class Simulation:
                 
                 # Create and launch a Swift simulator environment
                 env = Swift()
-                env.launch(realtime=True)
-
+                if self.browser == "notebook":
+                    env.launch(realtime=True, browser="notebook")
+                else: 
+                    env.launch(realtime=True)
                 # Create a robot model (here it's named Maira7M) and add it to the simulator
                 maira = rtb.models.URDF.Maira7M()
 
