@@ -9,6 +9,8 @@ import matplotlib.animation as animation
 from mpl_toolkits.mplot3d import Axes3D
 np.set_printoptions(precision=2, suppress=True, linewidth=200, formatter={'float': '{:8.3f}'.format})
 
+from IPython.display import HTML
+
 from Simulation.WaitTime import WaitTime
 from Simulation.MoveJoint import MoveJoint
 from Simulation.MoveLinear import MoveLinear
